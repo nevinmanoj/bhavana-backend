@@ -27,7 +27,7 @@ func GetDomainErrorResponse(err error) ErrorResponse {
 	default:
 		return ErrorResponse{
 			StatusCode: 500,
-			Message:    "Internal server error",
+			Message:    "Internal server error" + err.Error(),
 		}
 	}
 }

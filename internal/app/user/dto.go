@@ -14,7 +14,7 @@ type CreateUserRequest struct {
 	Email    string        `json:"email" validate:"required,email"`
 	Password string        `json:"password" validate:"required,min=6"`
 	Name     string        `json:"name" validate:"required"`
-	Role     core.UserRole `json:"role" validate:"required,oneof=admin judge"`
+	Role     core.UserRole `json:"role" validate:"required,user_role"`
 }
 
 type LoginUserResponse struct {
@@ -23,6 +23,7 @@ type LoginUserResponse struct {
 }
 
 type UserResponse struct {
+	ID    int64         `json:"id"`
 	Email string        `json:"email"`
 	Name  string        `json:"name"`
 	Role  core.UserRole `json:"role"`
@@ -30,6 +31,7 @@ type UserResponse struct {
 
 func ToUserResponse(u *user.User) UserResponse {
 	return UserResponse{
+		ID:    u.ID,
 		Email: u.Email,
 		Name:  u.Name,
 		Role:  u.Role,

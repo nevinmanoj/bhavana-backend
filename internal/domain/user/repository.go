@@ -3,15 +3,16 @@ package user
 import (
 	"context"
 
-	core "github.com/nevinmanoj/bhavana-backend/internal/core"
+	"github.com/jmoiron/sqlx"
 )
 
 type UserWriteRepository interface {
 	UserReadRepository
-	CreateUser(ctx context.Context, email, password, name string, role core.UserRole) (*User, error)
+	CreateUser(ctx context.Context, db sqlx.ExtContext, password string, userToCreate *User) error
 }
 type UserReadRepository interface {
-	GetUserByEmail(ctx context.Context, email string) (*User, error)
-	GetUserByID(ctx context.Context, id int64) (*User, error)
-	GetAllUsers(ctx context.Context, filter UserFilter) ([]User, error)
+	GetUserByEmail(ctx context.Context, db sqlx.ExtContext, email string) (*User, error)
+	GetUserByID(ctx context.Context, db sqlx.ExtContext, id int64) (*User, error)
+	GetAllUsers(ctx context.Context, db sqlx.ExtContext, filter UserFilter) ([]User, error)
+	ExistsAsJudge(ctx context.Context, db sqlx.ExtContext, userID int64) (bool, error)
 }

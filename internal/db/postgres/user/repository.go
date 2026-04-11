@@ -6,53 +6,46 @@ import (
 
 	"github.com/jmoiron/sqlx"
 	auth "github.com/nevinmanoj/bhavana-backend/internal/auth"
-	"github.com/nevinmanoj/bhavana-backend/internal/core"
 	user "github.com/nevinmanoj/bhavana-backend/internal/domain/user"
 )
 
 type userRepository struct {
-	db *sqlx.DB
 }
 
-func NewUserWriteRepository(db *sqlx.DB) user.UserWriteRepository {
-	return &userRepository{db: db}
+func NewUserWriteRepository() user.UserWriteRepository {
+	return &userRepository{}
 }
-func NewUserReadRepository(db *sqlx.DB) user.UserReadRepository {
-	return &userRepository{db: db}
+func NewUserReadRepository() user.UserReadRepository {
+	return &userRepository{}
 }
 
-func (r *userRepository) CreateUser(ctx context.Context, email, password, name string, role core.UserRole) (*user.User, error) {
+func (r *userRepository) CreateUser(ctx context.Context, db sqlx.ExtContext, password string, userToCreate *user.User) error {
 	//check if email already exists
 	var exists bool
-	err := r.db.QueryRowContext(
+	err := db.QueryRowxContext(
 		ctx,
 		`SELECT EXISTS (
-		SELECT 1
-		FROM users
-		WHERE email = $1
-	)`,
-		email,
+        SELECT 1
+        FROM users
+        WHERE email = $1
+    )`,
+		userToCreate.Email,
 	).Scan(&exists)
 
 	if err != nil {
 		log.Println("Error checking if email exists:", err)
-		return nil, user.ErrInternal
+		return user.ErrInternal
 	}
 
 	if exists {
-		return nil, user.ErrAlreadyExists
+		return user.ErrAlreadyExists
 	}
 	passwordHash, err := auth.HashPassword(password)
 	if err != nil {
 		log.Println("Error hashing password:", err)
-		return nil, user.ErrInternal
+		return user.ErrInternal
 	}
-	userToCreate := &user.User{
-		Email:        email,
-		PasswordHash: passwordHash,
-		Name:         name,
-		Role:         role,
-	}
+	userToCreate.PasswordHash = passwordHash
 
 	query := `
 		INSERT INTO users (
@@ -70,25 +63,25 @@ func (r *userRepository) CreateUser(ctx context.Context, email, password, name s
 		RETURNING id, created_at
 	`
 
-	rows, err := r.db.NamedQueryContext(ctx, query, userToCreate)
+	rows, err := sqlx.NamedQueryContext(ctx, db, query, userToCreate)
 	if err != nil {
 		log.Println("Error inserting user:", err)
-		return nil, user.ErrInternal
+		return user.ErrInternal
 	}
 	defer rows.Close()
 
 	if rows.Next() {
 		rows.Scan(&userToCreate.ID, &userToCreate.CreatedAt)
-		return userToCreate, nil
+		return nil
 	}
 
-	return nil, user.ErrInternal
+	return user.ErrInternal
 }
 
-func (r *userRepository) GetUserByEmail(ctx context.Context, email string) (*user.User, error) {
+func (r *userRepository) GetUserByEmail(ctx context.Context, db sqlx.ExtContext, email string) (*user.User, error) {
 	users := []user.User{}
-	err := r.db.SelectContext(
-		ctx,
+	err := sqlx.SelectContext(
+		ctx, db,
 		&users,
 		`SELECT * FROM users
 		 WHERE email = $1`,
@@ -106,10 +99,10 @@ func (r *userRepository) GetUserByEmail(ctx context.Context, email string) (*use
 	return &user, nil
 }
 
-func (r *userRepository) GetUserByID(ctx context.Context, id int64) (*user.User, error) {
+func (r *userRepository) GetUserByID(ctx context.Context, db sqlx.ExtContext, id int64) (*user.User, error) {
 	users := []user.User{}
-	err := r.db.SelectContext(
-		ctx,
+	err := sqlx.SelectContext(
+		ctx, db,
 		&users,
 		`SELECT * FROM users
 		 WHERE id = $1`,
@@ -127,12 +120,12 @@ func (r *userRepository) GetUserByID(ctx context.Context, id int64) (*user.User,
 
 }
 
-func (r *userRepository) GetAllUsers(ctx context.Context, filter user.UserFilter) ([]user.User, error) {
+func (r *userRepository) GetAllUsers(ctx context.Context, db sqlx.ExtContext, filter user.UserFilter) ([]user.User, error) {
 	users := []user.User{}
 	baseQuery := `SELECT * FROM users`
 	finalQuery, finalArgs, err := buildUserQuery(baseQuery, filter)
-	err = r.db.SelectContext(
-		ctx,
+	err = sqlx.SelectContext(
+		ctx, db,
 		&users,
 		finalQuery, finalArgs...,
 	)
@@ -140,4 +133,14 @@ func (r *userRepository) GetAllUsers(ctx context.Context, filter user.UserFilter
 		return nil, err
 	}
 	return users, nil
+}
+func (r *userRepository) ExistsAsJudge(ctx context.Context, db sqlx.ExtContext, userID int64) (bool, error) {
+	var count int
+	err := db.QueryRowxContext(ctx,
+		`SELECT COUNT(*) FROM users WHERE id = $1 AND role = 'judge'`, userID,
+	).Scan(&count)
+	if err != nil {
+		return false, err
+	}
+	return count > 0, nil
 }

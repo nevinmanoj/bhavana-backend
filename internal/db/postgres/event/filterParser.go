@@ -1,21 +1,26 @@
-package user
+package event
 
 import (
 	"strings"
 
 	"github.com/jmoiron/sqlx"
-	"github.com/nevinmanoj/bhavana-backend/internal/domain/user"
+	"github.com/nevinmanoj/bhavana-backend/internal/domain/event"
 )
 
-func buildUserQuery(baseQuery string, f user.UserFilter) (string, []any, error) {
+func buildEventQuery(baseQuery string, f event.EventFilter) (string, []any, error) {
 	var (
 		conditions []string
 		args       []any
 	)
 
-	if len(f.Roles) > 0 {
-		conditions = append(conditions, "u.role IN (?)")
-		args = append(args, f.Roles)
+	if f.Status != nil {
+		conditions = append(conditions, "e.status = ?")
+		args = append(args, *f.Status)
+	}
+
+	if f.Category != nil {
+		conditions = append(conditions, "e.category = ?")
+		args = append(args, *f.Category)
 	}
 
 	// Apply WHERE

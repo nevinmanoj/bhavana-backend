@@ -20,8 +20,8 @@ type UserHandler struct {
 	validator *validator.Validate
 }
 
-func NewUserHandler(s user.UserService) *UserHandler {
-	return &UserHandler{service: s, validator: validator.New()}
+func NewUserHandler(s user.UserService, v *validator.Validate) *UserHandler {
+	return &UserHandler{service: s, validator: v}
 }
 func (h *UserHandler) GetUsers(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
@@ -107,7 +107,12 @@ func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 	var name string = req.Name
 	var role core.UserRole = req.Role
 	var token = r.Header.Get("Authorization")
-	createdUser, err := h.service.CreateUser(ctx, email, password, name, token, role)
+	userToCreate := &user.User{
+		Email: email,
+		Name:  name,
+		Role:  role,
+	}
+	err := h.service.CreateUser(ctx, userToCreate, password, token)
 	if err != nil {
 		json.NewEncoder(w).Encode(ErrorResponse{
 			StatusCode: http.StatusInternalServerError,
@@ -115,7 +120,7 @@ func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	userResponse := ToUserResponse(createdUser)
+	userResponse := ToUserResponse(userToCreate)
 	json.NewEncoder(w).Encode(PostResponsePage[UserResponse]{
 		Message:    "User created successfully",
 		Data:       userResponse,
