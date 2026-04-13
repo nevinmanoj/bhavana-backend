@@ -13,6 +13,7 @@ import (
 
 	appEvent "github.com/nevinmanoj/bhavana-backend/internal/app/event"
 	appUser "github.com/nevinmanoj/bhavana-backend/internal/app/user"
+	"github.com/nevinmanoj/bhavana-backend/internal/rbac"
 
 	repoEvent "github.com/nevinmanoj/bhavana-backend/internal/db/postgres/event"
 	repoUser "github.com/nevinmanoj/bhavana-backend/internal/db/postgres/user"
@@ -74,19 +75,18 @@ func Start() error {
 		// protected
 		router.Group(func(groupRouter chi.Router) {
 			groupRouter.Use(authMiddleware)
-			groupRouter.Get("/", userHandler.GetUsers)
-			groupRouter.Get("/{userId}", userHandler.GetUser)
+			groupRouter.With(middleware.RequirePermission(rbac.PermViewUser)).Get("/", userHandler.GetUsers)
+			groupRouter.With(middleware.RequirePermission(rbac.PermViewUser)).Get("/{userId}", userHandler.GetUser)
 		})
 	})
 
 	//Event routes
 	r.Route("/events", func(router chi.Router) {
 		router.Use(authMiddleware)
-		router.Get("/", eventHandler.GetEvents)
-		router.Get("/{eventId}", eventHandler.GetEvent)
-		router.Post("/", eventHandler.CreateEvent)
-		router.Put("/{eventId}", eventHandler.UpdateEvent)
-
+		router.With(middleware.RequirePermission(rbac.PermViewEvent)).Get("/", eventHandler.GetEvents)
+		router.With(middleware.RequirePermission(rbac.PermViewEvent)).Get("/{eventId}", eventHandler.GetEvent)
+		router.With(middleware.RequirePermission(rbac.PermCreateEvent)).Post("/", eventHandler.CreateEvent)
+		router.With(middleware.RequirePermission(rbac.PermUpdateEvent)).Put("/{eventId}", eventHandler.UpdateEvent)
 	})
 
 	return http.ListenAndServe(":8080", r)

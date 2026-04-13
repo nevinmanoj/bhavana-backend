@@ -3,6 +3,7 @@ package validation
 import (
 	"github.com/go-playground/validator/v10"
 	"github.com/nevinmanoj/bhavana-backend/internal/core"
+	"github.com/nevinmanoj/bhavana-backend/internal/rbac"
 )
 
 func NewValidator() *validator.Validate {
@@ -19,7 +20,7 @@ func NewValidator() *validator.Validate {
 
 	//register user role validation
 	v.RegisterValidation("user_role", func(fl validator.FieldLevel) bool {
-		role, ok := fl.Field().Interface().(core.UserRole)
+		role, ok := fl.Field().Interface().(rbac.UserRole)
 		if !ok {
 			return false
 		}

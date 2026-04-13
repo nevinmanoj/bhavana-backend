@@ -1,8 +1,8 @@
 package user
 
 import (
-	"github.com/nevinmanoj/bhavana-backend/internal/core"
 	user "github.com/nevinmanoj/bhavana-backend/internal/domain/user"
+	"github.com/nevinmanoj/bhavana-backend/internal/rbac"
 )
 
 type LoginUserRequest struct {
@@ -14,7 +14,7 @@ type CreateUserRequest struct {
 	Email    string        `json:"email" validate:"required,email"`
 	Password string        `json:"password" validate:"required,min=6"`
 	Name     string        `json:"name" validate:"required"`
-	Role     core.UserRole `json:"role" validate:"required,user_role"`
+	Role     rbac.UserRole `json:"role" validate:"required,user_role"`
 }
 
 type LoginUserResponse struct {
@@ -26,7 +26,7 @@ type UserResponse struct {
 	ID    int64         `json:"id"`
 	Email string        `json:"email"`
 	Name  string        `json:"name"`
-	Role  core.UserRole `json:"role"`
+	Role  rbac.UserRole `json:"role"`
 }
 
 func ToUserResponse(u *user.User) UserResponse {

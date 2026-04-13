@@ -11,8 +11,8 @@ import (
 	"github.com/go-playground/validator/v10"
 	. "github.com/nevinmanoj/bhavana-backend/api"
 	errmap "github.com/nevinmanoj/bhavana-backend/internal/app/errmap"
-	"github.com/nevinmanoj/bhavana-backend/internal/core"
 	user "github.com/nevinmanoj/bhavana-backend/internal/domain/user"
+	"github.com/nevinmanoj/bhavana-backend/internal/rbac"
 )
 
 type UserHandler struct {
@@ -105,7 +105,7 @@ func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 	var email string = req.Email
 	var password string = req.Password
 	var name string = req.Name
-	var role core.UserRole = req.Role
+	var role rbac.UserRole = req.Role
 	var token = r.Header.Get("Authorization")
 	userToCreate := &user.User{
 		Email: email,

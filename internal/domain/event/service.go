@@ -7,7 +7,6 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/nevinmanoj/bhavana-backend/internal/core"
 	"github.com/nevinmanoj/bhavana-backend/internal/domain/user"
-	"github.com/nevinmanoj/bhavana-backend/internal/middleware"
 )
 
 type EventService interface {
@@ -60,11 +59,6 @@ func (s *eventService) GetAllEvents(ctx context.Context, filter EventFilter) ([]
 	return events, nil
 }
 func (s *eventService) CreateEvent(ctx context.Context, event *EventDetails) error {
-	//check if admin
-	userRole := ctx.Value(middleware.ContextUserRole).(core.UserRole)
-	if userRole != core.UserRoleAdmin {
-		return fmt.Errorf("only admins can create events")
-	}
 	tx, err := s.db.BeginTxx(ctx, nil)
 	if err != nil {
 		return fmt.Errorf("error starting transaction: %w", err)
@@ -88,11 +82,6 @@ func (s *eventService) CreateEvent(ctx context.Context, event *EventDetails) err
 	return tx.Commit()
 }
 func (s *eventService) UpdateEvent(ctx context.Context, event *EventDetails) error {
-	//check if admin
-	userRole := ctx.Value(middleware.ContextUserRole).(core.UserRole)
-	if userRole != core.UserRoleAdmin {
-		return fmt.Errorf("only admins can update events")
-	}
 	existingEvent, err := s.repo.GetEventByID(ctx, s.db, event.Event.ID)
 	if err != nil {
 		return fmt.Errorf("error fetching event: %w", err)

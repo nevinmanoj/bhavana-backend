@@ -6,7 +6,7 @@ import (
 
 	"github.com/jmoiron/sqlx"
 	auth "github.com/nevinmanoj/bhavana-backend/internal/auth"
-	core "github.com/nevinmanoj/bhavana-backend/internal/core"
+	"github.com/nevinmanoj/bhavana-backend/internal/rbac"
 )
 
 type UserService interface {
@@ -27,7 +27,7 @@ func NewUserService(repo UserWriteRepository, jwtSecret []byte, db *sqlx.DB) Use
 }
 
 func (s *userService) CreateUser(ctx context.Context, user *User, password, jwtToken string) error {
-	if user.Role == core.UserRoleAdmin {
+	if user.Role == rbac.UserRoleAdmin {
 		if jwtToken == "" {
 			return fmt.Errorf("Unauthorized: JWT token is required to create admin users")
 		}
@@ -35,7 +35,7 @@ func (s *userService) CreateUser(ctx context.Context, user *User, password, jwtT
 		if err != nil {
 			return fmt.Errorf("Unauthorized")
 		}
-		if claims.Role != core.UserRoleAdmin {
+		if claims.Role != rbac.UserRoleAdmin {
 			return fmt.Errorf("Forbidden: Only admins can create admin users")
 		}
 	}

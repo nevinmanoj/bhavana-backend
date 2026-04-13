@@ -5,8 +5,8 @@ import (
 	"strings"
 
 	errmap "github.com/nevinmanoj/bhavana-backend/internal/app/errmap"
-	"github.com/nevinmanoj/bhavana-backend/internal/core"
 	user "github.com/nevinmanoj/bhavana-backend/internal/domain/user"
+	"github.com/nevinmanoj/bhavana-backend/internal/rbac"
 )
 
 func parseUserFilter(q url.Values) (user.UserFilter, *errmap.BadRequestError) {
@@ -54,12 +54,12 @@ func parseUserFilter(q url.Values) (user.UserFilter, *errmap.BadRequestError) {
 	return f, nil
 }
 
-func parseUserRoleSlice(v string) ([]core.UserRole, error) {
+func parseUserRoleSlice(v string) ([]rbac.UserRole, error) {
 	parts := strings.Split(v, ",")
-	out := make([]core.UserRole, 0, len(parts))
+	out := make([]rbac.UserRole, 0, len(parts))
 
 	for _, p := range parts {
-		t, err := core.ParseUserRole(strings.TrimSpace(p))
+		t, err := rbac.ParseUserRole(strings.TrimSpace(p))
 		if err != nil {
 			return nil, err
 		}

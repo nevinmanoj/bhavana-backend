@@ -1,7 +1,7 @@
 package user
 
-import core "github.com/nevinmanoj/bhavana-backend/internal/core"
+import "github.com/nevinmanoj/bhavana-backend/internal/rbac"
 
 type UserFilter struct {
-	Roles []core.UserRole
+	Roles []rbac.UserRole
 }

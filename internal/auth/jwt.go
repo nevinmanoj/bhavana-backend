@@ -5,17 +5,17 @@ import (
 	"time"
 
 	jwt "github.com/golang-jwt/jwt/v5"
-	"github.com/nevinmanoj/bhavana-backend/internal/core"
+	"github.com/nevinmanoj/bhavana-backend/internal/rbac"
 )
 
 type Claims struct {
 	UserID int64         `json:"user_id"`
 	Email  string        `json:"email"`
-	Role   core.UserRole `json:"role"`
+	Role   rbac.UserRole `json:"role"`
 	jwt.RegisteredClaims
 }
 
-func GenerateToken(role core.UserRole, userID int64, email string, secret []byte) (string, error) {
+func GenerateToken(role rbac.UserRole, userID int64, email string, secret []byte) (string, error) {
 
 	claims := Claims{
 		UserID: userID,
