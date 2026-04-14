@@ -107,12 +107,22 @@ func (r *eventRepository) UpdateEvent(ctx context.Context, db sqlx.ExtContext, e
 			status = :status,
 			category = :category
 		WHERE id = :id
+		RETURNING created_at
 	`
-	_, err := sqlx.NamedExecContext(ctx, db, query, eventToUpdate)
+	rows, err := sqlx.NamedQueryContext(ctx, db, query, eventToUpdate)
 	if err != nil {
 		return err
 	}
-	return nil
+	defer rows.Close()
+
+	if rows.Next() {
+		if err := rows.Scan(&eventToUpdate.CreatedAt); err != nil {
+			return err
+		}
+
+		return nil
+	}
+	return sql.ErrNoRows
 }
 
 // event judges
@@ -215,12 +225,22 @@ func (r *eventRepository) UpdateEventCriteria(ctx context.Context, db sqlx.ExtCo
 		SET title = :title,
 			max_score = :max_score
 		WHERE id = :id
+		RETURNING created_at
 	`
-	_, err := sqlx.NamedExecContext(ctx, db, query, criteriaToUpdate)
+	rows, err := sqlx.NamedQueryContext(ctx, db, query, criteriaToUpdate)
 	if err != nil {
 		return err
 	}
-	return nil
+	defer rows.Close()
+
+	if rows.Next() {
+		if err := rows.Scan(&criteriaToUpdate.CreatedAt); err != nil {
+			return err
+		}
+
+		return nil
+	}
+	return sql.ErrNoRows
 }
 func (r *eventRepository) DeleteEventCriteria(ctx context.Context, db sqlx.ExtContext, criteriaID int64) error {
 	query := `

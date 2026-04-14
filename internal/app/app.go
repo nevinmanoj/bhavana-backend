@@ -12,13 +12,16 @@ import (
 	"github.com/nevinmanoj/bhavana-backend/internal/validation"
 
 	appEvent "github.com/nevinmanoj/bhavana-backend/internal/app/event"
+	appSchool "github.com/nevinmanoj/bhavana-backend/internal/app/school"
 	appUser "github.com/nevinmanoj/bhavana-backend/internal/app/user"
 	"github.com/nevinmanoj/bhavana-backend/internal/rbac"
 
 	repoEvent "github.com/nevinmanoj/bhavana-backend/internal/db/postgres/event"
+	repoSchool "github.com/nevinmanoj/bhavana-backend/internal/db/postgres/school"
 	repoUser "github.com/nevinmanoj/bhavana-backend/internal/db/postgres/user"
 
 	domainEvent "github.com/nevinmanoj/bhavana-backend/internal/domain/event"
+	domainSchool "github.com/nevinmanoj/bhavana-backend/internal/domain/school"
 	domainUser "github.com/nevinmanoj/bhavana-backend/internal/domain/user"
 )
 
@@ -47,14 +50,17 @@ func Start() error {
 	userReadRepo := repoUser.NewUserReadRepository()
 	userWriteRepo := repoUser.NewUserWriteRepository()
 	eventWriteRepo := repoEvent.NewEventWriteRepository()
+	schoolWriteRepo := repoSchool.NewSchoolWriteRepository()
 
 	//Services
 	userService := domainUser.NewUserService(userWriteRepo, jwtSecretbyte, dbConn)
 	eventService := domainEvent.NewEventService(eventWriteRepo, userReadRepo, dbConn)
+	schoolService := domainSchool.NewSchoolService(schoolWriteRepo, dbConn)
 
 	//Handlers
 	userHandler := appUser.NewUserHandler(userService, validator)
 	eventHandler := appEvent.NewEventHandler(eventService, validator)
+	schoolHandler := appSchool.NewSchoolHandler(schoolService, validator)
 
 	//CORS
 	r.Use(cors.Handler(cors.Options{
@@ -87,6 +93,26 @@ func Start() error {
 		router.With(middleware.RequirePermission(rbac.PermViewEvent)).Get("/{eventId}", eventHandler.GetEvent)
 		router.With(middleware.RequirePermission(rbac.PermCreateEvent)).Post("/", eventHandler.CreateEvent)
 		router.With(middleware.RequirePermission(rbac.PermUpdateEvent)).Put("/{eventId}", eventHandler.UpdateEvent)
+	})
+
+	//School and student routes
+	r.Route("/schools", func(router chi.Router) {
+		router.Use(authMiddleware)
+		router.With(middleware.RequirePermission(rbac.PermViewSchool)).Get("/", schoolHandler.GetSchools)
+		router.With(middleware.RequirePermission(rbac.PermViewSchool)).Get("/{schoolId}", schoolHandler.GetSchool)
+		router.With(middleware.RequirePermission(rbac.PermCreateSchool)).Post("/", schoolHandler.CreateSchool)
+		router.With(middleware.RequirePermission(rbac.PermUpdateSchool)).Put("/{schoolId}", schoolHandler.UpdateSchool)
+
+		router.Route("/{schoolId}/students", func(studentRouter chi.Router) {
+			studentRouter.With(middleware.RequirePermission(rbac.PermViewStudent)).Get("/", schoolHandler.GetStudentsBySchoolID)
+			studentRouter.With(middleware.RequirePermission(rbac.PermCreateStudent)).Post("/", schoolHandler.CreateStudent)
+			studentRouter.With(middleware.RequirePermission(rbac.PermUpdateStudent)).Put("/{studentId}", schoolHandler.UpdateStudent)
+		})
+	})
+
+	r.Route("/students", func(router chi.Router) {
+		router.Use(authMiddleware)
+		router.With(middleware.RequirePermission(rbac.PermViewStudent)).Get("/", schoolHandler.GetStudents)
 	})
 
 	return http.ListenAndServe(":8080", r)
