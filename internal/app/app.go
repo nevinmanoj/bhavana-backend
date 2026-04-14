@@ -80,7 +80,7 @@ func Start() error {
 
 		// protected
 		router.Group(func(groupRouter chi.Router) {
-			groupRouter.Use(authMiddleware)
+			groupRouter.Use(authMiddleware, middleware.InjectScope)
 			groupRouter.With(middleware.RequirePermission(rbac.PermViewUser)).Get("/", userHandler.GetUsers)
 			groupRouter.With(middleware.RequirePermission(rbac.PermViewUser)).Get("/{userId}", userHandler.GetUser)
 		})
@@ -88,7 +88,7 @@ func Start() error {
 
 	//Event routes
 	r.Route("/events", func(router chi.Router) {
-		router.Use(authMiddleware)
+		router.Use(authMiddleware, middleware.InjectScope)
 		router.With(middleware.RequirePermission(rbac.PermViewEvent)).Get("/", eventHandler.GetEvents)
 		router.With(middleware.RequirePermission(rbac.PermViewEvent)).Get("/{eventId}", eventHandler.GetEvent)
 		router.With(middleware.RequirePermission(rbac.PermCreateEvent)).Post("/", eventHandler.CreateEvent)
@@ -97,7 +97,7 @@ func Start() error {
 
 	//School and student routes
 	r.Route("/schools", func(router chi.Router) {
-		router.Use(authMiddleware)
+		router.Use(authMiddleware, middleware.InjectScope)
 		router.With(middleware.RequirePermission(rbac.PermViewSchool)).Get("/", schoolHandler.GetSchools)
 		router.With(middleware.RequirePermission(rbac.PermViewSchool)).Get("/{schoolId}", schoolHandler.GetSchool)
 		router.With(middleware.RequirePermission(rbac.PermCreateSchool)).Post("/", schoolHandler.CreateSchool)
@@ -111,7 +111,7 @@ func Start() error {
 	})
 
 	r.Route("/students", func(router chi.Router) {
-		router.Use(authMiddleware)
+		router.Use(authMiddleware, middleware.InjectScope)
 		router.With(middleware.RequirePermission(rbac.PermViewStudent)).Get("/", schoolHandler.GetStudents)
 	})
 

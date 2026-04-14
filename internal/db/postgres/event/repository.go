@@ -7,6 +7,8 @@ import (
 
 	"github.com/jmoiron/sqlx"
 	"github.com/nevinmanoj/bhavana-backend/internal/domain/event"
+	"github.com/nevinmanoj/bhavana-backend/internal/middleware"
+	"github.com/nevinmanoj/bhavana-backend/internal/rbac"
 )
 
 type eventRepository struct {
@@ -21,9 +23,18 @@ func NewEventReadRepository() event.EventReadRepository {
 
 // events
 func (r *eventRepository) GetAllEvents(ctx context.Context, db sqlx.ExtContext, filter event.EventFilter) ([]event.Event, error) {
+	scope := ctx.Value(middleware.ContextScope).(rbac.Scope)
+	role := ctx.Value(middleware.ContextUserRole).(rbac.UserRole)
 	events := []event.Event{}
-	baseQuery := `SELECT * FROM events`
-	finalQuery, finalArgs, err := buildEventQuery(baseQuery, filter)
+	baseQuery := `SELECT e.* FROM events e`
+	args := []any{}
+
+	if scope.UserID != nil && role == rbac.UserRoleJudge {
+		baseQuery += " JOIN event_judges ej ON ej.event_id = e.id WHERE ej.user_id = $1"
+		args = append(args, *scope.UserID)
+	}
+
+	finalQuery, finalArgs, err := buildEventQuery(baseQuery, args, filter)
 	err = sqlx.SelectContext(
 		ctx, db,
 		&events,

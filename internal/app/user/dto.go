@@ -40,6 +40,7 @@ func ToUserResponse(u *user.User) UserResponse {
 func ToLoginUserResponse(u *user.User, token string) LoginUserResponse {
 	return LoginUserResponse{
 		UserResponse: UserResponse{
+			ID:    u.ID,
 			Email: u.Email,
 			Name:  u.Name,
 			Role:  u.Role,

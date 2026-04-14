@@ -3,6 +3,7 @@ package middleware
 type contextKey string
 
 const (
-	ContextUserKey  contextKey = "userID"
+	ContextUserID   contextKey = "userID"
 	ContextUserRole contextKey = "userRole"
+	ContextScope    contextKey = "scope"
 )
