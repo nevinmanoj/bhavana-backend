@@ -21,4 +21,6 @@ type SchoolReadRepository interface {
 	GetAllSchools(ctx context.Context, db sqlx.ExtContext) ([]School, error)
 
 	GetAllStudents(ctx context.Context, db sqlx.ExtContext, filter StudentFilter) ([]Student, error)
+	GetStudentByID(ctx context.Context, db sqlx.ExtContext, id int64) (*Student, error)
+	StudentExists(ctx context.Context, db sqlx.ExtContext, studentID int64) (bool, error)
 }

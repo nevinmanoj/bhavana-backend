@@ -219,3 +219,13 @@ func (s *schoolRepository) GetStudentByID(ctx context.Context, db sqlx.ExtContex
 	student := students[0]
 	return &student, nil
 }
+func (s *schoolRepository) StudentExists(ctx context.Context, db sqlx.ExtContext, studentID int64) (bool, error) {
+	var count int
+	err := db.QueryRowxContext(ctx,
+		`SELECT COUNT(*) FROM students WHERE id = $1`, studentID,
+	).Scan(&count)
+	if err != nil {
+		return false, err
+	}
+	return count > 0, nil
+}

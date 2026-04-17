@@ -13,15 +13,18 @@ import (
 
 	appEvent "github.com/nevinmanoj/bhavana-backend/internal/app/event"
 	appSchool "github.com/nevinmanoj/bhavana-backend/internal/app/school"
+	appTeam "github.com/nevinmanoj/bhavana-backend/internal/app/team"
 	appUser "github.com/nevinmanoj/bhavana-backend/internal/app/user"
 	"github.com/nevinmanoj/bhavana-backend/internal/rbac"
 
 	repoEvent "github.com/nevinmanoj/bhavana-backend/internal/db/postgres/event"
 	repoSchool "github.com/nevinmanoj/bhavana-backend/internal/db/postgres/school"
+	repoTeam "github.com/nevinmanoj/bhavana-backend/internal/db/postgres/team"
 	repoUser "github.com/nevinmanoj/bhavana-backend/internal/db/postgres/user"
 
 	domainEvent "github.com/nevinmanoj/bhavana-backend/internal/domain/event"
 	domainSchool "github.com/nevinmanoj/bhavana-backend/internal/domain/school"
+	domainTeam "github.com/nevinmanoj/bhavana-backend/internal/domain/team"
 	domainUser "github.com/nevinmanoj/bhavana-backend/internal/domain/user"
 )
 
@@ -50,21 +53,26 @@ func Start() error {
 	userReadRepo := repoUser.NewUserReadRepository()
 	userWriteRepo := repoUser.NewUserWriteRepository()
 	eventWriteRepo := repoEvent.NewEventWriteRepository()
+	eventReadRepo := repoEvent.NewEventReadRepository()
 	schoolWriteRepo := repoSchool.NewSchoolWriteRepository()
+	schoolReadRepo := repoSchool.NewSchoolReadRepository()
+	teamWrietRepo := repoTeam.NewTeamWriteRepository()
 
 	//Services
 	userService := domainUser.NewUserService(userWriteRepo, jwtSecretbyte, dbConn)
 	eventService := domainEvent.NewEventService(eventWriteRepo, userReadRepo, dbConn)
 	schoolService := domainSchool.NewSchoolService(schoolWriteRepo, dbConn)
+	teamService := domainTeam.NewTeamService(dbConn, teamWrietRepo, eventReadRepo, schoolReadRepo)
 
 	//Handlers
 	userHandler := appUser.NewUserHandler(userService, validator)
 	eventHandler := appEvent.NewEventHandler(eventService, validator)
 	schoolHandler := appSchool.NewSchoolHandler(schoolService, validator)
+	teamHandler := appTeam.NewEventHandler(teamService, validator)
 
 	//CORS
 	r.Use(cors.Handler(cors.Options{
-		AllowedOrigins:   []string{"http://localhost:3000", "http://localhost:5173"},
+		AllowedOrigins:   []string{"http://localhost:3000", "http://localhost:8081"},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
 		ExposedHeaders:   []string{"Link"},
@@ -113,6 +121,15 @@ func Start() error {
 	r.Route("/students", func(router chi.Router) {
 		router.Use(authMiddleware, middleware.InjectScope)
 		router.With(middleware.RequirePermission(rbac.PermViewStudent)).Get("/", schoolHandler.GetStudents)
+	})
+
+	// Teams routes
+	r.Route("/teams", func(router chi.Router) {
+		router.Use(authMiddleware, middleware.InjectScope)
+		router.With(middleware.RequirePermission(rbac.PermViewTeam)).Get("/", teamHandler.GetTeams)
+		router.With(middleware.RequirePermission(rbac.PermViewTeam)).Get("/{teamId}", teamHandler.GetTeam)
+		router.With(middleware.RequirePermission(rbac.PermCreateTeam)).Post("/", teamHandler.CreateTeam)
+		router.With(middleware.RequirePermission(rbac.PermUpdateTeam)).Put("/{teamId}", teamHandler.UpdateTeam)
 	})
 
 	return http.ListenAndServe(":8080", r)

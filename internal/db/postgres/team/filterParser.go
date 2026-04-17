@@ -1,24 +1,27 @@
-package event
+package team
 
 import (
 	"strings"
 
 	"github.com/jmoiron/sqlx"
-	"github.com/nevinmanoj/bhavana-backend/internal/domain/event"
+	"github.com/nevinmanoj/bhavana-backend/internal/domain/team"
 )
 
-func buildEventQuery(baseQuery string, args []any, f event.EventFilter) (string, []any, error) {
+func buildTeamQuery(baseQuery string, args []any, f team.TeamFilter) (string, []any, error) {
 	var (
 		conditions []string
 	)
 
-	if f.Status != nil {
-		conditions = append(conditions, "e.status = ?")
-		args = append(args, *f.Status)
+	if f.SchoolID != nil {
+		conditions = append(conditions, "t.school_id = ?")
+		args = append(args, *f.SchoolID)
 	}
-
+	if f.EventID != nil {
+		conditions = append(conditions, "t.event_id = ?")
+		args = append(args, *f.EventID)
+	}
 	if f.Category != nil {
-		conditions = append(conditions, "e.category = ?")
+		conditions = append(conditions, "t.category = ?")
 		args = append(args, *f.Category)
 	}
 
@@ -28,7 +31,7 @@ func buildEventQuery(baseQuery string, args []any, f event.EventFilter) (string,
 	}
 
 	// Ordering (always deterministic)
-	baseQuery += " ORDER BY e.created_at DESC"
+	baseQuery += " ORDER BY t.created_at DESC"
 
 	// Pagination
 	// if f.Limit > 0 {

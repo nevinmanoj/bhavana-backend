@@ -21,4 +21,10 @@ const (
 	PermUpdateStudent Permission = "student:update"
 	PermDeleteStudent Permission = "student:delete"
 	PermViewStudent   Permission = "student:view"
+
+	//teams
+	PermCreateTeam Permission = "team:create"
+	PermUpdateTeam Permission = "team:update"
+	PermViewTeam   Permission = "team:view"
+	PermDeleteTeam Permission = "team:delete"
 )

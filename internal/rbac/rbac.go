@@ -4,12 +4,14 @@ import "slices"
 
 var RolePermissions = map[UserRole][]Permission{
 	UserRoleAdmin: {
+		PermViewUser,
 		PermCreateEvent, PermUpdateEvent, PermDeleteEvent, PermViewEvent,
 		PermCreateSchool, PermUpdateSchool, PermDeleteSchool, PermViewSchool,
 		PermCreateStudent, PermUpdateStudent, PermDeleteStudent, PermViewStudent,
+		PermCreateTeam, PermUpdateTeam, PermViewTeam, PermDeleteTeam,
 	},
 	UserRoleJudge: {
-		PermViewEvent,
+		PermViewEvent, PermViewTeam,
 	},
 }
 
