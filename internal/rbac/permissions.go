@@ -5,10 +5,11 @@ const (
 	PermViewUser Permission = "user:view"
 
 	// events
-	PermCreateEvent Permission = "event:create"
-	PermUpdateEvent Permission = "event:update"
-	PermDeleteEvent Permission = "event:delete"
-	PermViewEvent   Permission = "event:view"
+	PermCreateEvent       Permission = "event:create"
+	PermUpdateEvent       Permission = "event:update"
+	PermUpdateEventStatus Permission = "event:updateStatus"
+	PermDeleteEvent       Permission = "event:delete"
+	PermViewEvent         Permission = "event:view"
 
 	//schools
 	PermCreateSchool Permission = "school:create"

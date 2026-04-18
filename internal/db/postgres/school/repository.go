@@ -125,9 +125,7 @@ func (s *schoolRepository) UpdateSchool(ctx context.Context, db sqlx.ExtContext,
 func (s *schoolRepository) UpdateStudent(ctx context.Context, db sqlx.ExtContext, studentToUpdate *school.Student) error {
 	query := `
 		UPDATE students
-		SET name = :name,
-			age = :age,
-			category = :category
+		SET name = :name
 		WHERE id = :id
 		RETURNING created_at
 	`

@@ -11,6 +11,7 @@ import (
 	"github.com/go-playground/validator/v10"
 	. "github.com/nevinmanoj/bhavana-backend/api"
 	"github.com/nevinmanoj/bhavana-backend/internal/app/errmap"
+	"github.com/nevinmanoj/bhavana-backend/internal/core"
 	event "github.com/nevinmanoj/bhavana-backend/internal/domain/event"
 	"github.com/nevinmanoj/bhavana-backend/internal/util"
 )
@@ -196,11 +197,88 @@ func (h *EventHandler) UpdateEvent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	eventResponse := ToEventDetailsResponse(&eventToUpdate)
-	json.NewEncoder(w).Encode(PostResponsePage[EventDetailsResponse]{
+	json.NewEncoder(w).Encode(PutResponsePage[EventDetailsResponse]{
 		Message:    "Event updated successfully",
 		Data:       eventResponse,
 		StatusCode: http.StatusOK,
 	})
+}
+func (h *EventHandler) UpdateEventStatus(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	eventIdStr := chi.URLParam(r, "eventId")
+	log.Println("HandlerUpdateEventStatus::Updating event status with ID:", eventIdStr)
+	var req UpdateEventRequest
+	dec := json.NewDecoder(r.Body)
+	dec.DisallowUnknownFields()
+	w.Header().Set("Content-Type", "application/json")
+	if err := dec.Decode(&req); err != nil {
+		fmt.Print(err)
+		json.NewEncoder(w).Encode(ErrorResponse{
+			StatusCode: http.StatusBadRequest,
+			Message:    "invalid JSON body",
+		})
+		return
+	}
+
+	if err := h.validator.Struct(req); err != nil {
+		json.NewEncoder(w).Encode(ErrorResponse{
+			StatusCode: http.StatusBadRequest,
+			Message:    err.Error(),
+		})
+		return
+	}
+	eventId, err := util.ParseStrToInt64(eventIdStr)
+	if err != nil {
+		json.NewEncoder(w).Encode(ErrorResponse{
+			StatusCode: http.StatusBadRequest,
+			Message:    "Invalid event ID in URL parameter",
+		})
+		return
+	}
+	if req.ID != *eventId {
+		json.NewEncoder(w).Encode(ErrorResponse{
+			StatusCode: http.StatusBadRequest,
+			Message:    "Event ID in request body does not match URL parameter",
+		})
+		return
+	}
+	err = h.service.UpdateEventStatus(ctx, *eventId, req.Status)
+	if err != nil {
+		json.NewEncoder(w).Encode(ErrorResponse{
+			StatusCode: http.StatusInternalServerError,
+			Message:    err.Error(),
+		})
+		return
+	}
+	json.NewEncoder(w).Encode(PutResponsePage[core.EventStatus]{
+		Message:    "Event status changed successfully",
+		Data:       req.Status,
+		StatusCode: http.StatusOK,
+	})
+}
+func (h *EventHandler) DeleteEvent(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	eventIdStr := chi.URLParam(r, "eventId")
+	log.Println("HandlerDeleteEvent::Deleting event with ID:", eventIdStr)
+	w.Header().Set("Content-Type", "application/json")
+	var resp any
+	eventId, err := strconv.ParseInt(eventIdStr, 10, 64)
+	if err != nil {
+		resp = errmap.GetDomainErrorResponse(err)
+		json.NewEncoder(w).Encode(resp)
+		return
+	}
+	err = h.service.DeleteEvent(ctx, eventId)
+	if err != nil {
+		resp = errmap.GetDomainErrorResponse(err)
+	} else {
+		resp = DeleteResponsePage{
+			StatusCode: http.StatusNoContent,
+			Message:    "Event deleted successfully",
+		}
+	}
+
+	json.NewEncoder(w).Encode(resp)
 }
 
 func paresejudgeReqs(judgeReqs []EventJudgeRequest) []event.EventJudge {

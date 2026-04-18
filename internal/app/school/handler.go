@@ -2,6 +2,7 @@ package school
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"strconv"
@@ -176,6 +177,30 @@ func (h *SchoolHandler) UpdateSchool(w http.ResponseWriter, r *http.Request) {
 		StatusCode: http.StatusOK,
 	})
 }
+func (h *SchoolHandler) DeleteSchool(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	schoolIdStr := chi.URLParam(r, "schoolId")
+	log.Println("HandlerDeleteSchool::Deleting school with ID:", schoolIdStr)
+	w.Header().Set("Content-Type", "application/json")
+	var resp any
+	schoolId, err := strconv.ParseInt(schoolIdStr, 10, 64)
+	if err != nil {
+		resp = errmap.GetDomainErrorResponse(err)
+		json.NewEncoder(w).Encode(resp)
+		return
+	}
+	err = h.service.DeleteSchool(ctx, schoolId)
+	if err != nil {
+		resp = errmap.GetDomainErrorResponse(err)
+	} else {
+		resp = DeleteResponsePage{
+			StatusCode: http.StatusNoContent,
+			Message:    "School deleted successfully",
+		}
+	}
+
+	json.NewEncoder(w).Encode(resp)
+}
 
 // student handlers
 func (h *SchoolHandler) GetStudents(w http.ResponseWriter, r *http.Request) {
@@ -341,9 +366,7 @@ func (h *SchoolHandler) UpdateStudent(w http.ResponseWriter, r *http.Request) {
 	studentToUpdate := school.Student{
 		ID:       req.ID,
 		Name:     req.Name,
-		Age:      req.Age,
 		SchoolID: *schoolId,
-		Category: req.Category,
 	}
 
 	err = h.service.UpdateStudent(ctx, &studentToUpdate)
@@ -355,9 +378,34 @@ func (h *SchoolHandler) UpdateStudent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	studentResponse := ToStudentResponse(&studentToUpdate)
+	fmt.Println(studentResponse)
 	json.NewEncoder(w).Encode(PostResponsePage[StudentResponse]{
 		Message:    "Student updated successfully",
 		Data:       studentResponse,
 		StatusCode: http.StatusOK,
 	})
+}
+func (h *SchoolHandler) DeleteStudent(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	studentIdStr := chi.URLParam(r, "studentId")
+	log.Println("HandlerDeleteSchool::Deleting student with ID:", studentIdStr)
+	w.Header().Set("Content-Type", "application/json")
+	var resp any
+	studentId, err := strconv.ParseInt(studentIdStr, 10, 64)
+	if err != nil {
+		resp = errmap.GetDomainErrorResponse(err)
+		json.NewEncoder(w).Encode(resp)
+		return
+	}
+	err = h.service.DeleteStudent(ctx, studentId)
+	if err != nil {
+		resp = errmap.GetDomainErrorResponse(err)
+	} else {
+		resp = DeleteResponsePage{
+			StatusCode: http.StatusNoContent,
+			Message:    "School deleted successfully",
+		}
+	}
+
+	json.NewEncoder(w).Encode(resp)
 }

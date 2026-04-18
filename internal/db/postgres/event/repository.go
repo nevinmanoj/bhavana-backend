@@ -6,6 +6,7 @@ import (
 	"log"
 
 	"github.com/jmoiron/sqlx"
+	"github.com/nevinmanoj/bhavana-backend/internal/core"
 	"github.com/nevinmanoj/bhavana-backend/internal/domain/event"
 	"github.com/nevinmanoj/bhavana-backend/internal/middleware"
 	"github.com/nevinmanoj/bhavana-backend/internal/rbac"
@@ -115,7 +116,6 @@ func (r *eventRepository) UpdateEvent(ctx context.Context, db sqlx.ExtContext, e
 			min_team_size = :min_team_size,
 			max_team_size = :max_team_size,
 			max_teams_per_school = :max_teams_per_school,
-			status = :status,
 			category = :category
 		WHERE id = :id
 		RETURNING created_at
@@ -134,6 +134,34 @@ func (r *eventRepository) UpdateEvent(ctx context.Context, db sqlx.ExtContext, e
 		return nil
 	}
 	return sql.ErrNoRows
+}
+func (r *eventRepository) UpdateEventStatus(ctx context.Context, db sqlx.ExtContext, status *core.EventStatus, eventID int64) error {
+	query := `UPDATE events SET status = $1 WHERE id = $2`
+	result, err := db.ExecContext(ctx, query, status, eventID)
+	if err != nil {
+		return err
+	}
+
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rows == 0 {
+		return event.ErrNotFound
+	}
+
+	return nil
+}
+func (r *eventRepository) DeleteEvent(ctx context.Context, db sqlx.ExtContext, eventID int64) error {
+	query := `
+		DELETE FROM events
+		WHERE id = $1
+	`
+	_, err := db.ExecContext(ctx, query, eventID)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 // event judges

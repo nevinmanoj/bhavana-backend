@@ -36,6 +36,11 @@ type TeamFullResponse struct {
 	CreatedAt   time.Time             `json:"created_at"`
 	Members     []TeamMembersResponse `json:"members"`
 }
+type TeamResponseJudge struct {
+	ID          int64 `json:"id"`
+	EventID     int64 `json:"event_id"`
+	ChestNumber int   `json:"chest_number"`
+}
 
 func ToTeamFullResponse(team *team.TeamFull) TeamFullResponse {
 	members := make([]TeamMembersResponse, len(team.Members))
@@ -52,5 +57,12 @@ func ToTeamFullResponse(team *team.TeamFull) TeamFullResponse {
 		ChestNumber: team.ChestNumber,
 		CreatedAt:   team.CreatedAt,
 		Members:     members,
+	}
+}
+func ToTeamResponseJudge(team *team.TeamFull) TeamResponseJudge {
+	return TeamResponseJudge{
+		ID:          team.ID,
+		EventID:     team.EventID,
+		ChestNumber: team.ChestNumber,
 	}
 }

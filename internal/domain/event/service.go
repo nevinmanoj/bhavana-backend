@@ -14,6 +14,8 @@ type EventService interface {
 	GetAllEvents(ctx context.Context, filter EventFilter) ([]Event, error)
 	CreateEvent(ctx context.Context, event *EventDetails) error
 	UpdateEvent(ctx context.Context, event *EventDetails) error
+	UpdateEventStatus(ctx context.Context, eventID int64, status core.EventStatus) error
+	DeleteEvent(ctx context.Context, eventID int64) error
 }
 
 type eventService struct {
@@ -169,6 +171,37 @@ func (s *eventService) UpdateEvent(ctx context.Context, event *EventDetails) err
 	}
 
 	return tx.Commit()
+}
+func (s *eventService) UpdateEventStatus(ctx context.Context, eventID int64, status core.EventStatus) error {
+	existingEvent, err := s.repo.GetEventByID(ctx, s.db, eventID)
+	if err != nil {
+		return fmt.Errorf("error fetching event: %w", err)
+	}
+	//check if finalized
+	if existingEvent.Status == core.EventStatusFinalized {
+		return fmt.Errorf("finalized events cannot be updated")
+	}
+	//check if status is being updated to draft from open or closed
+	if existingEvent.Status != core.EventStatusDraft && status == core.EventStatusDraft {
+		return fmt.Errorf("cannot change event status back to draft")
+	}
+
+	tx, err := s.db.BeginTxx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("error starting transaction: %w", err)
+	}
+	defer tx.Rollback()
+
+	//update the status
+	err = s.repo.UpdateEventStatus(ctx, tx, &status, eventID)
+	if err != nil {
+		return fmt.Errorf("error updating event Status: %w", err)
+	}
+
+	return tx.Commit()
+}
+func (s *eventService) DeleteEvent(ctx context.Context, eventID int64) error {
+	return s.repo.DeleteEvent(ctx, s.db, eventID)
 }
 
 // helper functions

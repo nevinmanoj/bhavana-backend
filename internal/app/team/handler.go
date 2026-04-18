@@ -11,6 +11,8 @@ import (
 	. "github.com/nevinmanoj/bhavana-backend/api"
 	"github.com/nevinmanoj/bhavana-backend/internal/app/errmap"
 	"github.com/nevinmanoj/bhavana-backend/internal/domain/team"
+	"github.com/nevinmanoj/bhavana-backend/internal/middleware"
+	"github.com/nevinmanoj/bhavana-backend/internal/rbac"
 	"github.com/nevinmanoj/bhavana-backend/internal/util"
 )
 
@@ -19,13 +21,13 @@ type TeamHandler struct {
 	validator *validator.Validate
 }
 
-func NewEventHandler(s team.TeamService, v *validator.Validate) *TeamHandler {
+func NewTeamHandler(s team.TeamService, v *validator.Validate) *TeamHandler {
 	return &TeamHandler{service: s, validator: v}
 }
 
 func (h *TeamHandler) GetTeams(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	log.Println("HandlerGetEvents::Fetching all team")
+	log.Println("HandlerGetTeams::Fetching all team")
 	w.Header().Set("Content-Type", "application/json")
 	var resp any
 	q := r.URL.Query()
@@ -34,18 +36,25 @@ func (h *TeamHandler) GetTeams(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(errresp)
 		return
 	}
-	events, err := h.service.GetTeams(ctx, filter)
+
+	teams, err := h.service.GetTeams(ctx, filter)
 	if err != nil {
 		resp = errmap.GetDomainErrorResponse(err)
 	} else {
-		teamResponses := make([]TeamFullResponse, len(events))
-		for i, e := range events {
-			teamResponses[i] = ToTeamFullResponse(&e)
-		}
-		resp = GetAllResponsePage[TeamFullResponse]{
-			StatusCode: 200,
-			Message:    "Teams fetched successfully",
-			Data:       teamResponses,
+		role := ctx.Value(middleware.ContextUserRole).(rbac.UserRole)
+		switch role {
+		case rbac.UserRoleJudge:
+			resp = GetAllResponsePage[TeamResponseJudge]{
+				StatusCode: 200,
+				Message:    "Teams fetched successfully",
+				Data:       mapTeams(teams, ToTeamResponseJudge),
+			}
+		default:
+			resp = GetAllResponsePage[TeamFullResponse]{
+				StatusCode: 200,
+				Message:    "Teams fetched successfully",
+				Data:       mapTeams(teams, ToTeamFullResponse),
+			}
 		}
 	}
 	json.NewEncoder(w).Encode(resp)
@@ -66,12 +75,22 @@ func (h *TeamHandler) GetTeam(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		resp = errmap.GetDomainErrorResponse(err)
 	} else {
-		eventResponse := ToTeamFullResponse(result)
-		resp = GetResponsePage[TeamFullResponse]{
-			StatusCode: 200,
-			Message:    "Team fetched successfully",
-			Data:       eventResponse,
+		role := ctx.Value(middleware.ContextUserRole).(rbac.UserRole)
+		switch role {
+		case rbac.UserRoleJudge:
+			resp = GetResponsePage[TeamResponseJudge]{
+				StatusCode: 200,
+				Message:    "Teams fetched successfully",
+				Data:       ToTeamResponseJudge(result),
+			}
+		default:
+			resp = GetResponsePage[TeamFullResponse]{
+				StatusCode: 200,
+				Message:    "Teams fetched successfully",
+				Data:       ToTeamFullResponse(result),
+			}
 		}
+
 	}
 
 	json.NewEncoder(w).Encode(resp)
@@ -178,7 +197,32 @@ func (h *TeamHandler) UpdateTeam(w http.ResponseWriter, r *http.Request) {
 		StatusCode: http.StatusCreated,
 	})
 }
+func (h *TeamHandler) DeleteTeam(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	teamIdstr := chi.URLParam(r, "teamId")
+	log.Println("HandlerDeleteTeam::Deleting team with ID:", teamIdstr)
+	w.Header().Set("Content-Type", "application/json")
+	var resp any
+	teamID, err := strconv.ParseInt(teamIdstr, 10, 64)
+	if err != nil {
+		resp = errmap.GetDomainErrorResponse(err)
+		json.NewEncoder(w).Encode(resp)
+		return
+	}
+	err = h.service.DeleteTeam(ctx, teamID)
+	if err != nil {
+		resp = errmap.GetDomainErrorResponse(err)
+	} else {
+		resp = DeleteResponsePage{
+			StatusCode: http.StatusNoContent,
+			Message:    "Team deleted successfully",
+		}
+	}
 
+	json.NewEncoder(w).Encode(resp)
+}
+
+// helpers
 func pareseTeamMemberReqs(membersRequests []TeamMemberRequest) []team.TeamMember {
 	members := make([]team.TeamMember, len(membersRequests))
 	for i, membersRequest := range membersRequests {
@@ -187,4 +231,11 @@ func pareseTeamMemberReqs(membersRequests []TeamMemberRequest) []team.TeamMember
 		}
 	}
 	return members
+}
+func mapTeams[T any](teams []team.TeamFull, mapper func(*team.TeamFull) T) []T {
+	result := make([]T, len(teams))
+	for i, t := range teams {
+		result[i] = mapper(&t)
+	}
+	return result
 }

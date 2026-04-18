@@ -21,6 +21,10 @@ type UpdateEventRequest struct {
 	ID int64 `json:"id" validate:"required"`
 	CreateEventRequest
 }
+type UpdatEventStatusRequest struct {
+	ID     int64            `json:"id" validate:"required"`
+	Status core.EventStatus `json:"status" validate:"required,event_status"`
+}
 
 type EventJudgeRequest struct {
 	UserId int64 `json:"user_id" validate:"required"`

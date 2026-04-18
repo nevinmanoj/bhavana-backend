@@ -1,6 +1,7 @@
 package app
 
 import (
+	"fmt"
 	"net/http"
 	"os"
 
@@ -68,7 +69,7 @@ func Start() error {
 	userHandler := appUser.NewUserHandler(userService, validator)
 	eventHandler := appEvent.NewEventHandler(eventService, validator)
 	schoolHandler := appSchool.NewSchoolHandler(schoolService, validator)
-	teamHandler := appTeam.NewEventHandler(teamService, validator)
+	teamHandler := appTeam.NewTeamHandler(teamService, validator)
 
 	//CORS
 	r.Use(cors.Handler(cors.Options{
@@ -101,6 +102,8 @@ func Start() error {
 		router.With(middleware.RequirePermission(rbac.PermViewEvent)).Get("/{eventId}", eventHandler.GetEvent)
 		router.With(middleware.RequirePermission(rbac.PermCreateEvent)).Post("/", eventHandler.CreateEvent)
 		router.With(middleware.RequirePermission(rbac.PermUpdateEvent)).Put("/{eventId}", eventHandler.UpdateEvent)
+		router.With(middleware.RequirePermission(rbac.PermUpdateEvent)).Put("/{eventId}/status", eventHandler.UpdateEventStatus)
+		router.With(middleware.RequirePermission(rbac.PermDeleteEvent)).Delete("/{eventId}", eventHandler.DeleteEvent)
 	})
 
 	//School and student routes
@@ -110,11 +113,14 @@ func Start() error {
 		router.With(middleware.RequirePermission(rbac.PermViewSchool)).Get("/{schoolId}", schoolHandler.GetSchool)
 		router.With(middleware.RequirePermission(rbac.PermCreateSchool)).Post("/", schoolHandler.CreateSchool)
 		router.With(middleware.RequirePermission(rbac.PermUpdateSchool)).Put("/{schoolId}", schoolHandler.UpdateSchool)
+		router.With(middleware.RequirePermission(rbac.PermDeleteSchool)).Delete("/{schoolId}", schoolHandler.DeleteSchool)
 
 		router.Route("/{schoolId}/students", func(studentRouter chi.Router) {
 			studentRouter.With(middleware.RequirePermission(rbac.PermViewStudent)).Get("/", schoolHandler.GetStudentsBySchoolID)
 			studentRouter.With(middleware.RequirePermission(rbac.PermCreateStudent)).Post("/", schoolHandler.CreateStudent)
 			studentRouter.With(middleware.RequirePermission(rbac.PermUpdateStudent)).Put("/{studentId}", schoolHandler.UpdateStudent)
+			studentRouter.With(middleware.RequirePermission(rbac.PermDeleteStudent)).Delete("/{studentId}", schoolHandler.DeleteStudent)
+
 		})
 	})
 
@@ -130,7 +136,10 @@ func Start() error {
 		router.With(middleware.RequirePermission(rbac.PermViewTeam)).Get("/{teamId}", teamHandler.GetTeam)
 		router.With(middleware.RequirePermission(rbac.PermCreateTeam)).Post("/", teamHandler.CreateTeam)
 		router.With(middleware.RequirePermission(rbac.PermUpdateTeam)).Put("/{teamId}", teamHandler.UpdateTeam)
+		router.With(middleware.RequirePermission(rbac.PermDeleteTeam)).Delete("/{teamId}", teamHandler.DeleteTeam)
+
 	})
 
+	fmt.Println("Serving on port 8080")
 	return http.ListenAndServe(":8080", r)
 }

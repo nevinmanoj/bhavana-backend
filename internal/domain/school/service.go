@@ -2,6 +2,7 @@ package school
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/jmoiron/sqlx"
 )
@@ -50,7 +51,20 @@ func (s *schoolService) GetAllStudents(ctx context.Context, filter StudentFilter
 	return s.repo.GetAllStudents(ctx, s.db, filter)
 }
 func (s *schoolService) UpdateStudent(ctx context.Context, student *Student) error {
-	return s.repo.UpdateStudent(ctx, s.db, student)
+	tx, err := s.db.BeginTxx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("error starting transaction: %w", err)
+	}
+	defer tx.Rollback()
+	err = s.repo.UpdateStudent(ctx, tx, student)
+	if err != nil {
+		return err
+	}
+	student, err = s.repo.GetStudentByID(ctx, tx, student.ID)
+	if err != nil {
+		return err
+	}
+	return tx.Commit()
 }
 func (s *schoolService) CreateStudent(ctx context.Context, student *Student) error {
 	return s.repo.CreateStudent(ctx, s.db, student)

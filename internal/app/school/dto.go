@@ -26,8 +26,8 @@ type CreateStudentRequest struct {
 	Category core.Category `json:"category" validate:"required,category"`
 }
 type UpdateStudentRequest struct {
-	ID int64 `json:"id" validate:"required"`
-	CreateStudentRequest
+	ID   int64  `json:"id" validate:"required"`
+	Name string `json:"name" validate:"required"`
 }
 
 type SchoolResponse struct {
