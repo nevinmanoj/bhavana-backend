@@ -7,10 +7,7 @@ import (
 	"github.com/nevinmanoj/bhavana-backend/internal/domain/event"
 )
 
-func buildEventQuery(baseQuery string, args []any, f event.EventFilter) (string, []any, error) {
-	var (
-		conditions []string
-	)
+func buildEventQuery(baseQuery string, args []any, conditions []string, f event.EventFilter) (string, []any, error) {
 
 	if f.Status != nil {
 		conditions = append(conditions, "e.status = ?")

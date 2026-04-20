@@ -7,11 +7,8 @@ import (
 	"github.com/nevinmanoj/bhavana-backend/internal/domain/school"
 )
 
-func buildStudentQuery(baseQuery string, f school.StudentFilter) (string, []any, error) {
-	var (
-		conditions []string
-		args       []any
-	)
+func buildStudentQuery(baseQuery string, args []any, conditions []string, f school.StudentFilter) (string, []any, error) {
+
 	if f.SchoolID != nil {
 		conditions = append(conditions, "s.school_id = ?")
 		args = append(args, *f.SchoolID)

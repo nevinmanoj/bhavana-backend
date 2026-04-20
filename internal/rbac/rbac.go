@@ -12,8 +12,15 @@ var RolePermissions = map[UserRole][]Permission{
 		PermCreateScore, PermUpdateScore, PermViewScore, PermDeleteScore,
 	},
 	UserRoleJudge: {
-		PermViewEvent, PermViewTeam,
+		PermViewEvent,
+		PermViewTeam,
 		PermCreateScore, PermUpdateScore, PermViewScore, PermDeleteScore,
+	},
+	UserRoleSchoolAdmin: {
+		PermViewEvent,
+		PermViewSchool,
+		PermCreateStudent, PermUpdateStudent, PermDeleteStudent, PermViewStudent,
+		PermCreateTeam, PermUpdateTeam, PermViewTeam, PermDeleteTeam,
 	},
 }
 
@@ -23,4 +30,5 @@ func HasPermission(role UserRole, perm Permission) bool {
 		return false
 	}
 	return slices.Contains(perms, perm)
+
 }

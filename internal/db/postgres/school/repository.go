@@ -7,6 +7,8 @@ import (
 
 	"github.com/jmoiron/sqlx"
 	"github.com/nevinmanoj/bhavana-backend/internal/domain/school"
+	"github.com/nevinmanoj/bhavana-backend/internal/middleware"
+	"github.com/nevinmanoj/bhavana-backend/internal/rbac"
 )
 
 type schoolRepository struct {
@@ -62,11 +64,18 @@ func (s *schoolRepository) DeleteSchool(ctx context.Context, db sqlx.ExtContext,
 }
 func (s *schoolRepository) GetAllSchools(ctx context.Context, db sqlx.ExtContext) ([]school.School, error) {
 	schools := []school.School{}
+	scope := ctx.Value(middleware.ContextScope).(rbac.Scope)
+	role := ctx.Value(middleware.ContextUserRole).(rbac.UserRole)
 	baseQuery := `SELECT * FROM schools`
+	args := []any{}
+	if scope.UserID != nil && role == rbac.UserRoleSchoolAdmin {
+		baseQuery += " WHERE school_admin = $1"
+		args = append(args, scope.UserID)
+	}
 	err := sqlx.SelectContext(
 		ctx, db,
 		&schools,
-		baseQuery,
+		baseQuery, args...,
 	)
 	if err != nil {
 		return nil, err
@@ -75,12 +84,20 @@ func (s *schoolRepository) GetAllSchools(ctx context.Context, db sqlx.ExtContext
 }
 func (s *schoolRepository) GetSchoolByID(ctx context.Context, db sqlx.ExtContext, id int64) (*school.School, error) {
 	schools := []school.School{}
+	baseQuery := `SELECT * FROM schools
+		 			WHERE id = $1`
+	args := []any{id}
+	scope := ctx.Value(middleware.ContextScope).(rbac.Scope)
+	role := ctx.Value(middleware.ContextUserRole).(rbac.UserRole)
+	if scope.UserID != nil && role == rbac.UserRoleSchoolAdmin {
+		baseQuery += " AND school_admin = $2"
+		args = append(args, scope.UserID)
+	}
 	err := sqlx.SelectContext(
 		ctx, db,
 		&schools,
-		`SELECT * FROM schools
-		 WHERE id = $1`,
-		id,
+		baseQuery,
+		args...,
 	)
 
 	if err != nil {
@@ -177,8 +194,17 @@ func (s *schoolRepository) DeleteStudent(ctx context.Context, db sqlx.ExtContext
 }
 func (s *schoolRepository) GetAllStudents(ctx context.Context, db sqlx.ExtContext, filter school.StudentFilter) ([]school.Student, error) {
 	students := []school.Student{}
-	baseQuery := `SELECT * FROM students s`
-	finalQuery, args, err := buildStudentQuery(baseQuery, filter)
+	baseQuery := `SELECT s.* FROM students s`
+	scope := ctx.Value(middleware.ContextScope).(rbac.Scope)
+	role := ctx.Value(middleware.ContextUserRole).(rbac.UserRole)
+	args := []any{}
+	conditions := []string{}
+	if scope.UserID != nil && role == rbac.UserRoleSchoolAdmin {
+		baseQuery += " JOIN schools sc ON s.school_id = sc.id"
+		conditions = append(conditions, "sc.school_admin = ?")
+		args = append(args, scope.UserID)
+	}
+	finalQuery, args, err := buildStudentQuery(baseQuery, args, conditions, filter)
 	if err != nil {
 		return nil, err
 	}
@@ -194,12 +220,25 @@ func (s *schoolRepository) GetAllStudents(ctx context.Context, db sqlx.ExtContex
 }
 func (s *schoolRepository) GetStudentByID(ctx context.Context, db sqlx.ExtContext, id int64) (*school.Student, error) {
 	students := []school.Student{}
-	err := sqlx.SelectContext(
+	args := []any{id}
+	conditions := []string{"s.id = ?"}
+	baseQuery := `SELECT s.* FROM students s`
+	scope := ctx.Value(middleware.ContextScope).(rbac.Scope)
+	role := ctx.Value(middleware.ContextUserRole).(rbac.UserRole)
+	if scope.UserID != nil && role == rbac.UserRoleSchoolAdmin {
+		baseQuery += "JOIN schools sc ON sc.id = s.school_id"
+		conditions = append(conditions, "sc.school_id = ?")
+		args = append(args, scope.UserID)
+	}
+	finalQuery, finalArgs, err := buildStudentQuery(baseQuery, args, conditions, school.StudentFilter{})
+	if err != nil {
+		return nil, err
+	}
+	err = sqlx.SelectContext(
 		ctx, db,
 		&students,
-		`SELECT * FROM students
-		 WHERE id = $1`,
-		id,
+		finalQuery,
+		finalArgs...,
 	)
 
 	if err != nil {

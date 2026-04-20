@@ -32,6 +32,7 @@ type UpdateStudentRequest struct {
 
 type SchoolResponse struct {
 	ID           int64     `json:"id"`
+	SchoolAdmin  *int64    `json:"school_admin,omitempty"`
 	Name         string    `json:"name"`
 	Address      string    `json:"address"`
 	ContactName  string    `json:"contact_name"`
@@ -57,6 +58,7 @@ func ToSchoolResponse(s *school.School) SchoolResponse {
 		ContactEmail: s.ContactEmail,
 		ContactPhone: s.ContactPhone,
 		CreatedAt:    s.CreatedAt,
+		SchoolAdmin:  s.SchoolAdmin,
 	}
 }
 func ToStudentResponse(st *school.Student) StudentResponse {

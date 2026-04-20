@@ -5,15 +5,17 @@ import (
 	"fmt"
 
 	"github.com/jmoiron/sqlx"
+	"github.com/nevinmanoj/bhavana-backend/internal/domain/access"
 	"github.com/nevinmanoj/bhavana-backend/internal/domain/event"
 	"github.com/nevinmanoj/bhavana-backend/internal/domain/school"
 )
 
 type teamService struct {
-	db         *sqlx.DB
-	repo       TeamWriteRepository
-	eventsRepo event.EventReadRepository
-	schoolRepo school.SchoolReadRepository
+	db            *sqlx.DB
+	accessService access.AccessService
+	repo          TeamWriteRepository
+	eventsRepo    event.EventReadRepository
+	schoolRepo    school.SchoolReadRepository
 }
 
 type TeamService interface {
@@ -24,8 +26,19 @@ type TeamService interface {
 	DeleteTeam(ctx context.Context, teamID int64) error
 }
 
-func NewTeamService(db *sqlx.DB, repo TeamWriteRepository, eventsRepo event.EventReadRepository, schoolRepo school.SchoolReadRepository) TeamService {
-	return &teamService{db: db, repo: repo, eventsRepo: eventsRepo, schoolRepo: schoolRepo}
+func NewTeamService(
+	db *sqlx.DB,
+	accessService access.AccessService,
+	repo TeamWriteRepository,
+	eventsRepo event.EventReadRepository,
+	schoolRepo school.SchoolReadRepository,
+) TeamService {
+	return &teamService{
+		db:            db,
+		accessService: accessService,
+		repo:          repo,
+		eventsRepo:    eventsRepo,
+		schoolRepo:    schoolRepo}
 }
 
 func (s *teamService) GetTeams(ctx context.Context, filter TeamFilter) ([]TeamFull, error) {
@@ -70,7 +83,13 @@ func (s *teamService) CreateTeam(ctx context.Context, teamToCreate *TeamFull) er
 		return fmt.Errorf("error starting transaction: %w", err)
 	}
 	defer tx.Rollback()
-
+	access, err := s.accessService.CanCreateTeam(ctx, teamToCreate.SchoolID)
+	if err != nil {
+		return err
+	}
+	if !access {
+		return fmt.Errorf("Unauthorized")
+	}
 	//get event associated to check constraints
 	event, err := s.eventsRepo.GetEventByID(ctx, tx, teamToCreate.EventID)
 	if err != nil {
@@ -103,6 +122,13 @@ func (s *teamService) CreateTeam(ctx context.Context, teamToCreate *TeamFull) er
 	return tx.Commit()
 }
 func (s *teamService) UpdateTeam(ctx context.Context, teamToUpdate *TeamFull) error {
+	access, err := s.accessService.CanCreateTeam(ctx, teamToUpdate.ID)
+	if err != nil {
+		return err
+	}
+	if !access {
+		return fmt.Errorf("Unauthorized")
+	}
 	tx, err := s.db.BeginTxx(ctx, nil)
 	if err != nil {
 		return fmt.Errorf("error starting transaction: %w", err)
@@ -139,6 +165,13 @@ func (s *teamService) UpdateTeam(ctx context.Context, teamToUpdate *TeamFull) er
 	return tx.Commit()
 }
 func (s *teamService) DeleteTeam(ctx context.Context, teamID int64) error {
+	access, err := s.accessService.CanCreateTeam(ctx, teamID)
+	if err != nil {
+		return err
+	}
+	if !access {
+		return fmt.Errorf("Unauthorized")
+	}
 	return s.repo.DeleteTeam(ctx, s.db, teamID)
 }
 

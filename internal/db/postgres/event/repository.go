@@ -29,13 +29,15 @@ func (r *eventRepository) GetAllEvents(ctx context.Context, db sqlx.ExtContext, 
 	events := []event.Event{}
 	baseQuery := `SELECT e.* FROM events e`
 	args := []any{}
-
+	conditions := []string{}
 	if scope.UserID != nil && role == rbac.UserRoleJudge {
-		baseQuery += " JOIN event_judges ej ON ej.event_id = e.id WHERE ej.user_id = $1"
+		baseQuery += " JOIN event_judges ej ON ej.event_id = e.id"
+		conditions = append(conditions, "ej.user_id = ?")
+		conditions = append(conditions, "e.status = 'open'")
 		args = append(args, *scope.UserID)
 	}
 
-	finalQuery, finalArgs, err := buildEventQuery(baseQuery, args, filter)
+	finalQuery, finalArgs, err := buildEventQuery(baseQuery, args, conditions, filter)
 	err = sqlx.SelectContext(
 		ctx, db,
 		&events,

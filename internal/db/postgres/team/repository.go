@@ -46,6 +46,10 @@ func (e *eventRepository) GetAllTeams(ctx context.Context, db sqlx.ExtContext, f
 		conditions = append(conditions, "ej.user_id = ?")
 		args = append(args, *scope.UserID)
 	}
+	if scope.UserID != nil && role == rbac.UserRoleSchoolAdmin {
+		conditions = append(conditions, "s.school_admin = ?")
+		args = append(args, *scope.UserID)
+	}
 	finalQuery, finalargs, err := buildTeamQuery(baseQuery, conditions, args, filter)
 	if err != nil {
 		return nil, err
@@ -62,9 +66,11 @@ func (e *eventRepository) GetAllTeams(ctx context.Context, db sqlx.ExtContext, f
 }
 func (e *eventRepository) GetTeamByID(ctx context.Context, db sqlx.ExtContext, teamId int64) (*team.TeamFull, error) {
 	teams := []team.TeamFull{}
+	args := []any{teamId}
 	baseQuery := `SELECT   
 	t.id AS "team.id",
     t.school_id  AS "team.school_id",
+	t.chest_number AS "team.chest_number",
     t.event_id   AS "team.event_id",
     t.created_at AS "team.created_at",
 	s.name AS school_name,
@@ -75,11 +81,16 @@ func (e *eventRepository) GetTeamByID(ctx context.Context, db sqlx.ExtContext, t
 	JOIN schools s ON s.id = t.school_id
 	JOIN events e ON e.id = t.event_id
 	WHERE t.id = $1`
-
+	scope := ctx.Value(middleware.ContextScope).(rbac.Scope)
+	role := ctx.Value(middleware.ContextUserRole).(rbac.UserRole)
+	if scope.UserID != nil && role == rbac.UserRoleSchoolAdmin {
+		baseQuery += ` AND s.school_admin = $2`
+		args = append(args, *scope.UserID)
+	}
 	err := sqlx.SelectContext(
 		ctx, db,
 		&teams,
-		baseQuery, teamId,
+		baseQuery, args...,
 	)
 	if err != nil {
 		return nil, err

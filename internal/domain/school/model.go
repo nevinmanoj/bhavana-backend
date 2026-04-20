@@ -8,6 +8,7 @@ import (
 
 type School struct {
 	ID           int64     `db:"id"`
+	SchoolAdmin  *int64    `db:"school_admin"`
 	Address      string    `db:"address"`
 	Name         string    `db:"name"`
 	ContactName  string    `db:"contact_name"`

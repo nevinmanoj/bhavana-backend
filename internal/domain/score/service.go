@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/jmoiron/sqlx"
+	"github.com/nevinmanoj/bhavana-backend/internal/domain/access"
 	"github.com/nevinmanoj/bhavana-backend/internal/middleware"
 	"github.com/nevinmanoj/bhavana-backend/internal/rbac"
 )
@@ -18,12 +19,13 @@ type ScoreService interface {
 }
 
 type scoreService struct {
-	db   *sqlx.DB
-	repo ScoreWriteRepository
+	db            *sqlx.DB
+	accessService access.AccessService
+	repo          ScoreWriteRepository
 }
 
-func NewScoreService(db *sqlx.DB, repo ScoreWriteRepository) ScoreService {
-	return &scoreService{repo: repo, db: db}
+func NewScoreService(db *sqlx.DB, accessService access.AccessService, repo ScoreWriteRepository) ScoreService {
+	return &scoreService{db: db, accessService: accessService, repo: repo}
 }
 
 func (s *scoreService) GetScoretByID(ctx context.Context, id int64) (*Score, error) {
@@ -149,13 +151,20 @@ func (s *scoreService) UpdateScores(ctx context.Context, scoresToUpdate []Score)
 	}
 	defer tx.Rollback()
 	for _, scoreToUpdate := range scoresToUpdate {
-		err := s.repo.UpdateScore(ctx, s.db, &scoreToUpdate)
+		access, err := s.accessService.CanModifyScore(ctx, scoreToUpdate.ID)
+		if err != nil {
+			return err
+		}
+		if !access {
+			return ErrUnauthorized
+		}
+		err = s.repo.UpdateScore(ctx, tx, &scoreToUpdate)
 		if err != nil {
 			return mapScoreError(err)
 		}
 	}
 	return tx.Commit()
 }
-func (s *scoreService) DeleteScore(ctx context.Context, eventID int64) error {
-	return s.repo.DeleteScore(ctx, s.db, eventID)
+func (s *scoreService) DeleteScore(ctx context.Context, scoreID int64) error {
+	return s.repo.DeleteScore(ctx, s.db, scoreID)
 }

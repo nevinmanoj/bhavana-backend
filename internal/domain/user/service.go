@@ -17,26 +17,26 @@ type UserService interface {
 }
 
 type userService struct {
-	repo      UserWriteRepository
-	jwtSecret []byte
 	db        *sqlx.DB
+	jwtSecret []byte
+	repo      UserWriteRepository
 }
 
-func NewUserService(repo UserWriteRepository, jwtSecret []byte, db *sqlx.DB) UserService {
-	return &userService{repo: repo, jwtSecret: jwtSecret, db: db}
+func NewUserService(db *sqlx.DB, jwtSecret []byte, repo UserWriteRepository) UserService {
+	return &userService{db: db, jwtSecret: jwtSecret, repo: repo}
 }
 
 func (s *userService) CreateUser(ctx context.Context, user *User, password, jwtToken string) error {
-	if user.Role == rbac.UserRoleAdmin {
+	if user.Role == rbac.UserRoleAdmin || user.Role == rbac.UserRoleSchoolAdmin {
 		if jwtToken == "" {
-			return fmt.Errorf("Unauthorized: JWT token is required to create admin users")
+			return fmt.Errorf("Unauthorized: JWT token is required to create admin/school_admin users")
 		}
 		claims, err := auth.ParseToken(jwtToken, s.jwtSecret)
 		if err != nil {
 			return fmt.Errorf("Unauthorized")
 		}
 		if claims.Role != rbac.UserRoleAdmin {
-			return fmt.Errorf("Forbidden: Only admins can create admin users")
+			return fmt.Errorf("Forbidden: Only admins can create admin/school_admin users")
 		}
 	}
 	return s.repo.CreateUser(ctx, s.db, password, user)

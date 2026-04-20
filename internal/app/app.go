@@ -20,12 +20,14 @@ import (
 
 	"github.com/nevinmanoj/bhavana-backend/internal/rbac"
 
+	repoAccess "github.com/nevinmanoj/bhavana-backend/internal/db/postgres/access"
 	repoEvent "github.com/nevinmanoj/bhavana-backend/internal/db/postgres/event"
 	repoSchool "github.com/nevinmanoj/bhavana-backend/internal/db/postgres/school"
 	repoScore "github.com/nevinmanoj/bhavana-backend/internal/db/postgres/score"
 	repoTeam "github.com/nevinmanoj/bhavana-backend/internal/db/postgres/team"
 	repoUser "github.com/nevinmanoj/bhavana-backend/internal/db/postgres/user"
 
+	domainAccess "github.com/nevinmanoj/bhavana-backend/internal/domain/access"
 	domainEvent "github.com/nevinmanoj/bhavana-backend/internal/domain/event"
 	domainSchool "github.com/nevinmanoj/bhavana-backend/internal/domain/school"
 	domainScore "github.com/nevinmanoj/bhavana-backend/internal/domain/score"
@@ -55,6 +57,7 @@ func Start() error {
 	authMiddleware := middleware.Authorization(jwtSecretbyte)
 
 	//Repos
+	repoAccess := repoAccess.NewAccessRepository()
 	userReadRepo := repoUser.NewUserReadRepository()
 	userWriteRepo := repoUser.NewUserWriteRepository()
 	eventWriteRepo := repoEvent.NewEventWriteRepository()
@@ -65,11 +68,12 @@ func Start() error {
 	scoreWriteRepo := repoScore.NewScoreWriteRepository()
 
 	//Services
-	userService := domainUser.NewUserService(userWriteRepo, jwtSecretbyte, dbConn)
-	eventService := domainEvent.NewEventService(eventWriteRepo, userReadRepo, dbConn)
-	schoolService := domainSchool.NewSchoolService(schoolWriteRepo, dbConn)
-	teamService := domainTeam.NewTeamService(dbConn, teamWrietRepo, eventReadRepo, schoolReadRepo)
-	scoreService := domainScore.NewScoreService(dbConn, scoreWriteRepo)
+	accessService := domainAccess.NewAccessService(dbConn, repoAccess)
+	userService := domainUser.NewUserService(dbConn, jwtSecretbyte, userWriteRepo)
+	eventService := domainEvent.NewEventService(dbConn, eventWriteRepo, userReadRepo)
+	schoolService := domainSchool.NewSchoolService(dbConn, accessService, schoolWriteRepo)
+	teamService := domainTeam.NewTeamService(dbConn, accessService, teamWrietRepo, eventReadRepo, schoolReadRepo)
+	scoreService := domainScore.NewScoreService(dbConn, accessService, scoreWriteRepo)
 
 	//Handlers
 	userHandler := appUser.NewUserHandler(userService, validator)

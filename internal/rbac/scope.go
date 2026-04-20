@@ -10,6 +10,8 @@ func ResolveScope(userid int64, role UserRole) Scope {
 		return Scope{}
 	case UserRoleJudge:
 		return Scope{UserID: &userid}
+	case UserRoleSchoolAdmin:
+		return Scope{UserID: &userid}
 	default:
 		return Scope{UserID: &userid}
 	}

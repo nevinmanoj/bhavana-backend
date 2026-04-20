@@ -2,9 +2,9 @@ package school
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/jmoiron/sqlx"
+	"github.com/nevinmanoj/bhavana-backend/internal/domain/access"
 )
 
 type SchoolService interface {
@@ -21,12 +21,13 @@ type SchoolService interface {
 }
 
 type schoolService struct {
-	repo SchoolWriteRepository
-	db   *sqlx.DB
+	db            *sqlx.DB
+	accessService access.AccessService
+	repo          SchoolWriteRepository
 }
 
-func NewSchoolService(repo SchoolWriteRepository, db *sqlx.DB) SchoolService {
-	return &schoolService{repo: repo, db: db}
+func NewSchoolService(db *sqlx.DB, accessService access.AccessService, repo SchoolWriteRepository) SchoolService {
+	return &schoolService{db: db, accessService: accessService, repo: repo}
 }
 
 // schools
@@ -51,24 +52,32 @@ func (s *schoolService) GetAllStudents(ctx context.Context, filter StudentFilter
 	return s.repo.GetAllStudents(ctx, s.db, filter)
 }
 func (s *schoolService) UpdateStudent(ctx context.Context, student *Student) error {
-	tx, err := s.db.BeginTxx(ctx, nil)
-	if err != nil {
-		return fmt.Errorf("error starting transaction: %w", err)
-	}
-	defer tx.Rollback()
-	err = s.repo.UpdateStudent(ctx, tx, student)
+	access, err := s.accessService.CanModifyStudent(ctx, student.ID)
 	if err != nil {
 		return err
 	}
-	student, err = s.repo.GetStudentByID(ctx, tx, student.ID)
-	if err != nil {
-		return err
+	if !access {
+		return ErrUnauthorized
 	}
-	return tx.Commit()
+	return s.repo.UpdateStudent(ctx, s.db, student)
 }
 func (s *schoolService) CreateStudent(ctx context.Context, student *Student) error {
+	access, err := s.accessService.CanCreateStudent(ctx, student.SchoolID)
+	if err != nil {
+		return err
+	}
+	if !access {
+		return ErrUnauthorized
+	}
 	return s.repo.CreateStudent(ctx, s.db, student)
 }
 func (s *schoolService) DeleteStudent(ctx context.Context, id int64) error {
+	access, err := s.accessService.CanModifyStudent(ctx, id)
+	if err != nil {
+		return err
+	}
+	if !access {
+		return ErrUnauthorized
+	}
 	return s.repo.DeleteStudent(ctx, s.db, id)
 }

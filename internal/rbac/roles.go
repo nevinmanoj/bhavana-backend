@@ -9,8 +9,9 @@ type UserRole string
 type Permission string
 
 const (
-	UserRoleAdmin UserRole = "admin"
-	UserRoleJudge UserRole = "judge"
+	UserRoleAdmin       UserRole = "admin"
+	UserRoleJudge       UserRole = "judge"
+	UserRoleSchoolAdmin UserRole = "school_admin"
 )
 
 func ParseUserRole(v string) (UserRole, error) {
@@ -19,13 +20,15 @@ func ParseUserRole(v string) (UserRole, error) {
 		return UserRoleAdmin, nil
 	case "judge":
 		return UserRoleJudge, nil
+	case "school_admin":
+		return UserRoleSchoolAdmin, nil
 	default:
-		return "", fmt.Errorf("Invalid role, must be ['admin','judge'] ")
+		return "", fmt.Errorf("Invalid role, must be ['admin','judge','school_admin'] ")
 	}
 }
 func (r UserRole) IsValid() bool {
 	switch r {
-	case UserRoleAdmin, UserRoleJudge:
+	case UserRoleAdmin, UserRoleJudge, UserRoleSchoolAdmin:
 		return true
 	}
 	return false

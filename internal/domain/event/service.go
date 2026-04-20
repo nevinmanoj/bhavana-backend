@@ -19,13 +19,13 @@ type EventService interface {
 }
 
 type eventService struct {
+	db       *sqlx.DB
 	repo     EventWriteRepository
 	userRepo user.UserReadRepository
-	db       *sqlx.DB
 }
 
-func NewEventService(repo EventWriteRepository, userReadRepo user.UserReadRepository, db *sqlx.DB) EventService {
-	return &eventService{repo: repo, userRepo: userReadRepo, db: db}
+func NewEventService(db *sqlx.DB, repo EventWriteRepository, userReadRepo user.UserReadRepository) EventService {
+	return &eventService{db: db, repo: repo, userRepo: userReadRepo}
 }
 func (s *eventService) GetEventByID(ctx context.Context, id int64) (*EventDetails, error) {
 	tx, err := s.db.BeginTxx(ctx, nil)
@@ -202,7 +202,7 @@ func (s *eventService) syncEventJudges(ctx context.Context, tx *sqlx.Tx, event *
 	// insert new judges
 	for _, j := range requested {
 		if !existingMap[j.UserID] {
-			if event.Event.Status != core.EventStatusFinalized {
+			if event.Event.Status == core.EventStatusFinalized {
 				return fmt.Errorf("Judges cannot be added in EventStatus:Finalized")
 			}
 			// Check if the user exists as a judge
