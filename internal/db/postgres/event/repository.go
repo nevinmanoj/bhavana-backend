@@ -118,22 +118,20 @@ func (r *eventRepository) UpdateEvent(ctx context.Context, db sqlx.ExtContext, e
 			max_teams_per_school = :max_teams_per_school,
 			category = :category
 		WHERE id = :id
-		RETURNING created_at
 	`
-	rows, err := sqlx.NamedQueryContext(ctx, db, query, eventToUpdate)
+	result, err := sqlx.NamedExecContext(ctx, db, query, eventToUpdate)
 	if err != nil {
 		return err
 	}
-	defer rows.Close()
 
-	if rows.Next() {
-		if err := rows.Scan(&eventToUpdate.CreatedAt); err != nil {
-			return err
-		}
-
-		return nil
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return err
 	}
-	return sql.ErrNoRows
+	if rows == 0 {
+		return event.ErrInternal
+	}
+	return nil
 }
 func (r *eventRepository) UpdateEventStatus(ctx context.Context, db sqlx.ExtContext, status *core.EventStatus, eventID int64) error {
 	query := `UPDATE events SET status = $1 WHERE id = $2`
@@ -256,29 +254,6 @@ func (r *eventRepository) CreateEventCriteria(ctx context.Context, db sqlx.ExtCo
 		return nil
 	}
 
-	return sql.ErrNoRows
-}
-func (r *eventRepository) UpdateEventCriteria(ctx context.Context, db sqlx.ExtContext, criteriaToUpdate *event.EventCriteria) error {
-	query := `
-		UPDATE event_criteria
-		SET title = :title,
-			max_score = :max_score
-		WHERE id = :id
-		RETURNING created_at
-	`
-	rows, err := sqlx.NamedQueryContext(ctx, db, query, criteriaToUpdate)
-	if err != nil {
-		return err
-	}
-	defer rows.Close()
-
-	if rows.Next() {
-		if err := rows.Scan(&criteriaToUpdate.CreatedAt); err != nil {
-			return err
-		}
-
-		return nil
-	}
 	return sql.ErrNoRows
 }
 func (r *eventRepository) DeleteEventCriteria(ctx context.Context, db sqlx.ExtContext, criteriaID int64) error {

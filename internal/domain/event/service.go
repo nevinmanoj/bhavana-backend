@@ -107,45 +107,6 @@ func (s *eventService) UpdateEvent(ctx context.Context, event *EventDetails) err
 			existingEvent.MaxTeamsPerSchool != event.Event.MaxTeamsPerSchool {
 			return fmt.Errorf("cannot edit core fields of a non-draft event")
 		}
-
-		//cannot delete judge when status is NOT draft
-		existingJudges, err := s.repo.GetEventJudges(ctx, s.db, event.Event.ID)
-		if err != nil {
-			return fmt.Errorf("error fetching event judges: %w", err)
-		}
-		requestedMap := make(map[int64]bool)
-		for _, judge := range existingJudges {
-			requestedMap[judge.UserID] = true
-		}
-		for _, judge := range event.Judges {
-			if !requestedMap[judge.UserID] {
-				return fmt.Errorf("Cannot remove judges from an event that is not in draft status")
-			}
-		}
-
-		//cannot edit criteria when status is NOT draft
-		existingCriteria, err := s.repo.GetEventCriteria(ctx, s.db, event.Event.ID)
-		if err != nil {
-			return fmt.Errorf("error fetching event criteria: %w", err)
-		}
-		if len(existingCriteria) != len(event.Criteria) {
-			return fmt.Errorf("cannot add or remove criteria from an event that is not in draft status")
-		}
-
-		existingMap := make(map[int64]EventCriteria)
-		for _, c := range existingCriteria {
-			existingMap[c.ID] = c
-		}
-
-		for _, c := range event.Criteria {
-			ex, exists := existingMap[c.ID]
-			if !exists {
-				return fmt.Errorf("cannot add criteria to an event that is not in draft status")
-			}
-			if ex.Title != c.Title || ex.MaxScore != c.MaxScore {
-				return fmt.Errorf("cannot edit criteria of an event that is not in draft status")
-			}
-		}
 	}
 
 	tx, err := s.db.BeginTxx(ctx, nil)
@@ -229,6 +190,9 @@ func (s *eventService) syncEventJudges(ctx context.Context, tx *sqlx.Tx, event *
 	// delete removed judges
 	for _, j := range existing {
 		if !requestedMap[j.UserID] {
+			if event.Event.Status != core.EventStatusDraft {
+				return fmt.Errorf("Judges can only be removed when the EventStatus:Draft")
+			}
 			if err := s.repo.DeleteEventJudge(ctx, tx, eventID, j.UserID); err != nil {
 				return fmt.Errorf("error deleting judge: %w", err)
 			}
@@ -238,6 +202,9 @@ func (s *eventService) syncEventJudges(ctx context.Context, tx *sqlx.Tx, event *
 	// insert new judges
 	for _, j := range requested {
 		if !existingMap[j.UserID] {
+			if event.Event.Status != core.EventStatusFinalized {
+				return fmt.Errorf("Judges cannot be added in EventStatus:Finalized")
+			}
 			// Check if the user exists as a judge
 			exists, err := s.userRepo.ExistsAsJudge(ctx, tx, j.UserID)
 			if err != nil {
@@ -284,18 +251,26 @@ func (s *eventService) syncEventCriterias(ctx context.Context, tx *sqlx.Tx, even
 			requestedMap[c.ID] = true
 		}
 	}
-
+	criteriaUpdated := false
 	// delete removed criterias
 	for _, c := range existing {
 		if !requestedMap[c.ID] {
+			if event.Event.Status != core.EventStatusDraft {
+				return fmt.Errorf("Event Criterias can only be removed when EventStatus:Draft")
+			}
 			if err := s.repo.DeleteEventCriteria(ctx, tx, c.ID); err != nil {
 				return fmt.Errorf("error deleting criteria: %w", err)
 			}
+			criteriaUpdated = true
 		}
 	}
-
+	// add new criterias
 	for _, c := range requested {
-		if c.ID == 0 {
+		_, exists := existingMap[c.ID]
+		if !exists {
+			if event.Event.Status != core.EventStatusDraft {
+				return fmt.Errorf("Event Criterias can only be added when EventStatus:Draft")
+			}
 			// insert new criteria
 			if err := s.repo.CreateEventCriteria(ctx, tx, &EventCriteria{
 				EventID:  eventID,
@@ -304,24 +279,17 @@ func (s *eventService) syncEventCriterias(ctx context.Context, tx *sqlx.Tx, even
 			}); err != nil {
 				return fmt.Errorf("error adding criteria: %w", err)
 			}
-		} else if _, exists := existingMap[c.ID]; exists {
-			// update existing criteria
-			if err := s.repo.UpdateEventCriteria(ctx, tx, &EventCriteria{
-				ID:       c.ID,
-				EventID:  eventID,
-				Title:    c.Title,
-				MaxScore: c.MaxScore,
-			}); err != nil {
-				return fmt.Errorf("error updating criteria: %w", err)
-			}
-		} else {
-			return fmt.Errorf("cannot update criteria with ID %d as it does not exist", c.ID)
+			criteriaUpdated = true
 		}
 	}
-	createdCriteria, err := s.repo.GetEventCriteria(ctx, tx, event.Event.ID)
-	if err != nil {
-		return fmt.Errorf("error fetching created criteria: %w", err)
+
+	if criteriaUpdated {
+		createdCriteria, err := s.repo.GetEventCriteria(ctx, tx, event.Event.ID)
+		if err != nil {
+			return fmt.Errorf("error fetching created criteria: %w", err)
+		}
+		event.Criteria = createdCriteria
 	}
-	event.Criteria = createdCriteria
+
 	return nil
 }

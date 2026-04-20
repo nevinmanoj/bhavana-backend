@@ -207,7 +207,7 @@ func (h *EventHandler) UpdateEventStatus(w http.ResponseWriter, r *http.Request)
 	ctx := r.Context()
 	eventIdStr := chi.URLParam(r, "eventId")
 	log.Println("HandlerUpdateEventStatus::Updating event status with ID:", eventIdStr)
-	var req UpdateEventRequest
+	var req UpdatEventStatusRequest
 	dec := json.NewDecoder(r.Body)
 	dec.DisallowUnknownFields()
 	w.Header().Set("Content-Type", "application/json")

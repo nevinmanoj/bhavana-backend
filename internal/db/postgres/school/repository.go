@@ -103,22 +103,20 @@ func (s *schoolRepository) UpdateSchool(ctx context.Context, db sqlx.ExtContext,
 			contact_email = :contact_email,
 			contact_phone = :contact_phone
 		WHERE id = :id
-		RETURNING created_at
 	`
-	rows, err := sqlx.NamedQueryContext(ctx, db, query, schoolToUpdate)
+	result, err := sqlx.NamedExecContext(ctx, db, query, schoolToUpdate)
 	if err != nil {
 		return err
 	}
-	defer rows.Close()
 
-	if rows.Next() {
-		if err := rows.Scan(&schoolToUpdate.CreatedAt); err != nil {
-			return err
-		}
-
-		return nil
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return err
 	}
-	return sql.ErrNoRows
+	if rows == 0 {
+		return school.ErrSchoolNotFound
+	}
+	return nil
 }
 
 // students
@@ -127,22 +125,20 @@ func (s *schoolRepository) UpdateStudent(ctx context.Context, db sqlx.ExtContext
 		UPDATE students
 		SET name = :name
 		WHERE id = :id
-		RETURNING created_at
 	`
-	rows, err := sqlx.NamedQueryContext(ctx, db, query, studentToUpdate)
+	result, err := sqlx.NamedExecContext(ctx, db, query, studentToUpdate)
 	if err != nil {
 		return err
 	}
-	defer rows.Close()
 
-	if rows.Next() {
-		if err := rows.Scan(&studentToUpdate.CreatedAt); err != nil {
-			return err
-		}
-
-		return nil
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return err
 	}
-	return sql.ErrNoRows
+	if rows == 0 {
+		return school.ErrStudentNotFound
+	}
+	return nil
 }
 func (s *schoolRepository) CreateStudent(ctx context.Context, db sqlx.ExtContext, studentToCreate *school.Student) error {
 	query := `

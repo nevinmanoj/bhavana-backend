@@ -15,7 +15,6 @@ type EventWriteRepository interface {
 	DeleteEvent(ctx context.Context, db sqlx.ExtContext, eventID int64) error
 
 	CreateEventCriteria(ctx context.Context, db sqlx.ExtContext, criteria *EventCriteria) error
-	UpdateEventCriteria(ctx context.Context, db sqlx.ExtContext, criteriaToUpdate *EventCriteria) error
 	DeleteEventCriteria(ctx context.Context, db sqlx.ExtContext, criteriaID int64) error
 
 	CreateEventJudge(ctx context.Context, db sqlx.ExtContext, judge *EventJudge) error

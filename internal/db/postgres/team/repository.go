@@ -28,6 +28,7 @@ func (e *eventRepository) GetAllTeams(ctx context.Context, db sqlx.ExtContext, f
 	teams := []team.TeamFull{}
 	baseQuery := `SELECT   
 	t.id AS "team.id",
+	t.chest_number AS "team.chest_number",
     t.school_id  AS "team.school_id",
     t.event_id   AS "team.event_id",
     t.created_at AS "team.created_at",
@@ -39,12 +40,13 @@ func (e *eventRepository) GetAllTeams(ctx context.Context, db sqlx.ExtContext, f
 	JOIN schools s ON s.id = t.school_id
 	JOIN events e ON e.id = t.event_id`
 	args := []any{}
-
+	conditions := []string{}
 	if scope.UserID != nil && role == rbac.UserRoleJudge {
-		baseQuery += " JOIN event_judges ej ON ej.event_id = e.id WHERE ej.user_id = ?"
+		baseQuery += " JOIN event_judges ej ON ej.event_id = e.id "
+		conditions = append(conditions, "ej.user_id = ?")
 		args = append(args, *scope.UserID)
 	}
-	finalQuery, finalargs, err := buildTeamQuery(baseQuery, args, filter)
+	finalQuery, finalargs, err := buildTeamQuery(baseQuery, conditions, args, filter)
 	if err != nil {
 		return nil, err
 	}

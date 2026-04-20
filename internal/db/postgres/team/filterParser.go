@@ -7,10 +7,7 @@ import (
 	"github.com/nevinmanoj/bhavana-backend/internal/domain/team"
 )
 
-func buildTeamQuery(baseQuery string, args []any, f team.TeamFilter) (string, []any, error) {
-	var (
-		conditions []string
-	)
+func buildTeamQuery(baseQuery string, conditions []string, args []any, f team.TeamFilter) (string, []any, error) {
 
 	if f.SchoolID != nil {
 		conditions = append(conditions, "t.school_id = ?")
