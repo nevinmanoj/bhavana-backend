@@ -156,6 +156,7 @@ func (h *SchoolHandler) UpdateSchool(w http.ResponseWriter, r *http.Request) {
 	schoolToUpdate := school.School{
 		ID:           req.ID,
 		Name:         req.Name,
+		SchoolAdmin:  req.SchoolAdmin,
 		Address:      req.Address,
 		ContactName:  req.ContactName,
 		ContactEmail: req.ContactEmail,

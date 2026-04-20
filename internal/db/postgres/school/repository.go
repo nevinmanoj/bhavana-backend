@@ -115,6 +115,7 @@ func (s *schoolRepository) UpdateSchool(ctx context.Context, db sqlx.ExtContext,
 	query := `
 		UPDATE schools
 		SET name = :name,
+			school_admin = :school_admin,
 			address = :address,
 			contact_name = :contact_name,
 			contact_email = :contact_email,
