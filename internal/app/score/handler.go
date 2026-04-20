@@ -93,7 +93,7 @@ func (h *ScoreHandler) CreateScores(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	scoresToCreate := parseCreateScoreReq(req.Scores, req.TeamID, req.JudgeID)
+	scoresToCreate := parseCreateScoreReq(req)
 	err := h.service.CreateScores(ctx, scoresToCreate)
 	if err != nil {
 		json.NewEncoder(w).Encode(ErrorResponse{
@@ -175,12 +175,12 @@ func (h *ScoreHandler) DeleteScore(w http.ResponseWriter, r *http.Request) {
 }
 
 // helpers
-func parseCreateScoreReq(scoreReqs []ScoreRequest, teamID, judgeID int64) []score.Score {
-	scores := make([]score.Score, len(scoreReqs))
-	for i, scoreReq := range scoreReqs {
+func parseCreateScoreReq(req CreateScoreRequest) []score.Score {
+	scores := make([]score.Score, len(req.Scores))
+	for i, scoreReq := range req.Scores {
 		scores[i] = score.Score{
-			JudgeID:    judgeID,
-			TeamID:     teamID,
+			JudgeID:    req.JudgeID,
+			TeamID:     req.TeamID,
 			CriteriaID: scoreReq.CriteriaID,
 			Score:      scoreReq.Score,
 		}

@@ -160,7 +160,7 @@ func (h *UserHandler) LoginUser(w http.ResponseWriter, r *http.Request) {
 	logingResponse := ToLoginUserResponse(user, token)
 
 	json.NewEncoder(w).Encode(PostResponsePage[LoginUserResponse]{
-		Message:    "User created successfully",
+		Message:    "User logged in successfully",
 		Data:       logingResponse,
 		StatusCode: http.StatusCreated,
 	})

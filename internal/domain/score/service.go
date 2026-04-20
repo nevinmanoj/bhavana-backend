@@ -128,7 +128,6 @@ func (s *scoreService) GetEventScoresDetailed(ctx context.Context, eventID int64
 		Teams:    teamSlice,
 	}, nil
 }
-
 func (s *scoreService) CreateScores(ctx context.Context, scoresToCreate []Score) error {
 	tx, err := s.db.BeginTxx(ctx, nil)
 	if err != nil {
@@ -157,7 +156,6 @@ func (s *scoreService) UpdateScores(ctx context.Context, scoresToUpdate []Score)
 	}
 	return tx.Commit()
 }
-
 func (s *scoreService) DeleteScore(ctx context.Context, eventID int64) error {
 	return s.repo.DeleteScore(ctx, s.db, eventID)
 }
