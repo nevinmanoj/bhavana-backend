@@ -14,17 +14,21 @@ import (
 
 	appEvent "github.com/nevinmanoj/bhavana-backend/internal/app/event"
 	appSchool "github.com/nevinmanoj/bhavana-backend/internal/app/school"
+	appScore "github.com/nevinmanoj/bhavana-backend/internal/app/score"
 	appTeam "github.com/nevinmanoj/bhavana-backend/internal/app/team"
 	appUser "github.com/nevinmanoj/bhavana-backend/internal/app/user"
+
 	"github.com/nevinmanoj/bhavana-backend/internal/rbac"
 
 	repoEvent "github.com/nevinmanoj/bhavana-backend/internal/db/postgres/event"
 	repoSchool "github.com/nevinmanoj/bhavana-backend/internal/db/postgres/school"
+	repoScore "github.com/nevinmanoj/bhavana-backend/internal/db/postgres/score"
 	repoTeam "github.com/nevinmanoj/bhavana-backend/internal/db/postgres/team"
 	repoUser "github.com/nevinmanoj/bhavana-backend/internal/db/postgres/user"
 
 	domainEvent "github.com/nevinmanoj/bhavana-backend/internal/domain/event"
 	domainSchool "github.com/nevinmanoj/bhavana-backend/internal/domain/school"
+	domainScore "github.com/nevinmanoj/bhavana-backend/internal/domain/score"
 	domainTeam "github.com/nevinmanoj/bhavana-backend/internal/domain/team"
 	domainUser "github.com/nevinmanoj/bhavana-backend/internal/domain/user"
 )
@@ -58,18 +62,21 @@ func Start() error {
 	schoolWriteRepo := repoSchool.NewSchoolWriteRepository()
 	schoolReadRepo := repoSchool.NewSchoolReadRepository()
 	teamWrietRepo := repoTeam.NewTeamWriteRepository()
+	scoreWriteRepo := repoScore.NewScoreWriteRepository()
 
 	//Services
 	userService := domainUser.NewUserService(userWriteRepo, jwtSecretbyte, dbConn)
 	eventService := domainEvent.NewEventService(eventWriteRepo, userReadRepo, dbConn)
 	schoolService := domainSchool.NewSchoolService(schoolWriteRepo, dbConn)
 	teamService := domainTeam.NewTeamService(dbConn, teamWrietRepo, eventReadRepo, schoolReadRepo)
+	scoreService := domainScore.NewScoreService(dbConn, scoreWriteRepo)
 
 	//Handlers
 	userHandler := appUser.NewUserHandler(userService, validator)
 	eventHandler := appEvent.NewEventHandler(eventService, validator)
 	schoolHandler := appSchool.NewSchoolHandler(schoolService, validator)
 	teamHandler := appTeam.NewTeamHandler(teamService, validator)
+	scoreHandler := appScore.NewSchoolHandler(scoreService, validator)
 
 	//CORS
 	r.Use(cors.Handler(cors.Options{
@@ -104,6 +111,7 @@ func Start() error {
 		router.With(middleware.RequirePermission(rbac.PermUpdateEvent)).Put("/{eventId}", eventHandler.UpdateEvent)
 		router.With(middleware.RequirePermission(rbac.PermUpdateEvent)).Put("/{eventId}/status", eventHandler.UpdateEventStatus)
 		router.With(middleware.RequirePermission(rbac.PermDeleteEvent)).Delete("/{eventId}", eventHandler.DeleteEvent)
+		router.With(middleware.RequirePermission(rbac.PermViewScore)).Get("/{eventId}/scores", scoreHandler.GetScoresByEventID)
 	})
 
 	//School and student routes
@@ -137,6 +145,15 @@ func Start() error {
 		router.With(middleware.RequirePermission(rbac.PermCreateTeam)).Post("/", teamHandler.CreateTeam)
 		router.With(middleware.RequirePermission(rbac.PermUpdateTeam)).Put("/{teamId}", teamHandler.UpdateTeam)
 		router.With(middleware.RequirePermission(rbac.PermDeleteTeam)).Delete("/{teamId}", teamHandler.DeleteTeam)
+
+	})
+	r.Route("/scores", func(router chi.Router) {
+		router.Use(authMiddleware, middleware.InjectScope)
+		// router.With(middleware.RequirePermission(rbac.PermViewTeam)).Get("/", teamHandler.GetTeams)
+		router.With(middleware.RequirePermission(rbac.PermViewScore)).Get("/{scoreId}", scoreHandler.GetScore)
+		router.With(middleware.RequirePermission(rbac.PermCreateScore)).Post("/", scoreHandler.CreateScores)
+		router.With(middleware.RequirePermission(rbac.PermUpdateScore)).Put("/", scoreHandler.UpdateScores)
+		router.With(middleware.RequirePermission(rbac.PermDeleteScore)).Delete("/{scoreId}", scoreHandler.DeleteScore)
 
 	})
 

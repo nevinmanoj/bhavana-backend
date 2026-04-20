@@ -28,4 +28,10 @@ const (
 	PermUpdateTeam Permission = "team:update"
 	PermViewTeam   Permission = "team:view"
 	PermDeleteTeam Permission = "team:delete"
+
+	//scores
+	PermCreateScore Permission = "score:create"
+	PermUpdateScore Permission = "score:update"
+	PermViewScore   Permission = "score:view"
+	PermDeleteScore Permission = "score:delete"
 )
