@@ -122,7 +122,7 @@ func (s *teamService) CreateTeam(ctx context.Context, teamToCreate *TeamFull) er
 	return tx.Commit()
 }
 func (s *teamService) UpdateTeam(ctx context.Context, teamToUpdate *TeamFull) error {
-	access, err := s.accessService.CanCreateTeam(ctx, teamToUpdate.ID)
+	access, err := s.accessService.CanModifyTeam(ctx, teamToUpdate.ID)
 	if err != nil {
 		return err
 	}

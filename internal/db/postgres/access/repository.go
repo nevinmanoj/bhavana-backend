@@ -31,8 +31,8 @@ func (r *accessRepository) HasSchoolAccess(ctx context.Context, db sqlx.ExtConte
 	const q = `
 		SELECT EXISTS (
 			SELECT 1
-			FROM school s
-			WHERE s.id = $1 AND sc.school_admin = $2
+			FROM schools sc
+			WHERE sc.id = $1 AND sc.school_admin = $2
 		)
 	`
 
@@ -55,9 +55,9 @@ func (r *accessRepository) HasTeamAccess(ctx context.Context, db sqlx.ExtContext
 	const q = `
 		SELECT EXISTS (
 			SELECT 1
-			FROM team t
+			FROM teams t
 			JOIN schools sc ON t.school_id = sc.id
-			WHERE t.id = $1 AND s.school_admin = $2
+			WHERE t.id = $1 AND sc.school_admin = $2
 		)
 	`
 	args := []any{teamID, userID}

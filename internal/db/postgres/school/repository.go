@@ -227,8 +227,8 @@ func (s *schoolRepository) GetStudentByID(ctx context.Context, db sqlx.ExtContex
 	scope := ctx.Value(middleware.ContextScope).(rbac.Scope)
 	role := ctx.Value(middleware.ContextUserRole).(rbac.UserRole)
 	if scope.UserID != nil && role == rbac.UserRoleSchoolAdmin {
-		baseQuery += "JOIN schools sc ON sc.id = s.school_id"
-		conditions = append(conditions, "sc.school_id = ?")
+		baseQuery += " JOIN schools sc ON sc.id = s.school_id "
+		conditions = append(conditions, "sc.school_admin = ?")
 		args = append(args, scope.UserID)
 	}
 	finalQuery, finalArgs, err := buildStudentQuery(baseQuery, args, conditions, school.StudentFilter{})
@@ -243,7 +243,7 @@ func (s *schoolRepository) GetStudentByID(ctx context.Context, db sqlx.ExtContex
 	)
 
 	if err != nil {
-		log.Println("Error fetching school by id:", err)
+		log.Println("Error fetching student by id:", err)
 		return nil, school.ErrInternal
 	}
 

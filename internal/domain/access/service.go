@@ -13,6 +13,7 @@ type AccessService interface {
 	CanModifyScore(ctx context.Context, scoreID int64) (bool, error)
 	CanCreateStudent(ctx context.Context, schoolID int64) (bool, error)
 	CanCreateTeam(ctx context.Context, schoolID int64) (bool, error)
+	CanModifyTeam(ctx context.Context, teamID int64) (bool, error)
 }
 
 type accessService struct {
