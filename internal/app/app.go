@@ -92,6 +92,16 @@ func Start() error {
 		MaxAge:           300, // 5 minutes
 	}))
 
+	//health and root endpoints
+	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("ok"))
+	})
+	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("HI there! Welcome to Bhavana Backend"))
+	})
+
 	//User routes
 	r.Route("/users", func(router chi.Router) {
 		// public

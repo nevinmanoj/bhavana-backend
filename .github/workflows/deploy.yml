@@ -47,4 +47,4 @@ jobs:
       with:
         resourceGroup: bhavana
         containerAppName: bhavana-backend
-        imageToDeploy: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+        imageToDeploy: $REGISTRY/$IMAGE_NAME:latest
