@@ -161,6 +161,11 @@ func Start() error {
 
 	})
 
-	fmt.Println("Serving on port 8080")
-	return http.ListenAndServe(":8080", r)
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080" // fallback for local run
+	}
+
+	fmt.Println("Serving on port " + port)
+	return http.ListenAndServe(":"+port, r)
 }
