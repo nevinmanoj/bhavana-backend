@@ -1,0 +1,45 @@
+name: Build and Deploy Go API
+
+on:
+  push:
+    branches: [ main ]
+
+env:
+  REGISTRY: bhavana.azurecr.io
+  IMAGE_NAME: bhavana-backend
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Azure Login
+      uses: azure/login@v2
+      with:
+          client-id: ${{ secrets.BHAVANABACKEND_AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.BHAVANABACKEND_AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.BHAVANABACKEND_AZURE_SUBSCRIPTION_ID }}
+
+    - name: Login to ACR
+      run: |
+        docker login $REGISTRY \
+        -u ${{ secrets.BHAVANABACKEND_REGISTRY_USERNAME }} \
+        -p ${{ secrets.BHAVANABACKEND_REGISTRY_PASSWORD }}
+
+    - name: Build image
+      run: |
+        docker build -t $REGISTRY/$IMAGE_NAME:${{ github.sha }} .
+
+    - name: Push image
+      run: |
+        docker push $REGISTRY/$IMAGE_NAME:${{ github.sha }}
+
+    - name: Deploy to Container Apps
+      uses: azure/container-apps-deploy-action@v1
+      with:
+        resourceGroup: bhavana
+        containerAppName: bhavana-backend
+        imageToDeploy: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
