@@ -35,10 +35,12 @@ jobs:
     - name: Build image
       run: |
         docker build -t $REGISTRY/$IMAGE_NAME:${{ github.sha }} .
+        docker tag $REGISTRY/$IMAGE_NAME:${{ github.sha }} $REGISTRY/$IMAGE_NAME:latest
 
     - name: Push image
       run: |
         docker push $REGISTRY/$IMAGE_NAME:${{ github.sha }}
+        docker push $REGISTRY/$IMAGE_NAME:latest
 
     - name: Deploy to Container Apps
       uses: azure/container-apps-deploy-action@v1
