@@ -84,7 +84,7 @@ func Start() error {
 
 	//CORS
 	r.Use(cors.Handler(cors.Options{
-		AllowedOrigins:   []string{"http://localhost:3000", "http://localhost:8081"},
+		AllowedOrigins:   []string{"http://localhost:3000", "http://localhost:8081", "https://jolly-smoke-0077dfc00.7.azurestaticapps.net/"},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
 		ExposedHeaders:   []string{"Link"},
