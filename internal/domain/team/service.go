@@ -199,12 +199,7 @@ func (s *teamService) syncTeamMembers(ctx context.Context, tx *sqlx.Tx, team *Te
 
 	// delete removed members
 	for _, j := range existing {
-		fmt.Println("existing checking")
-
-		fmt.Println(j.StudentID)
 		if !requestedMap[j.StudentID] {
-			fmt.Println("deleting")
-			fmt.Println(j.StudentID, teamID)
 			if err := s.repo.DeleteTeamMember(ctx, tx, teamID, j.StudentID); err != nil {
 				return fmt.Errorf("error deleting team member: %w", err)
 			}
@@ -227,7 +222,6 @@ func (s *teamService) syncTeamMembers(ctx context.Context, tx *sqlx.Tx, team *Te
 			}
 			if team.Team.SchoolID != student.SchoolID {
 				return fmt.Errorf("error: school id of student does not match with school id in team")
-
 			}
 
 			if err := s.repo.CreateTeamMember(ctx, tx, &TeamMember{

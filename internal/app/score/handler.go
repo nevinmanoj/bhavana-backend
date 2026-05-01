@@ -2,7 +2,6 @@ package score
 
 import (
 	"encoding/json"
-	"log"
 	"net/http"
 	"strconv"
 
@@ -25,7 +24,6 @@ func NewSchoolHandler(s score.ScoreService, v *validator.Validate) *ScoreHandler
 func (h *ScoreHandler) GetScoresByEventID(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	eventIdStr := chi.URLParam(r, "eventId")
-	log.Println("GetScoresByEventID::Fetching all score for event" + eventIdStr)
 	w.Header().Set("Content-Type", "application/json")
 	var resp any
 	eventID, err := strconv.ParseInt(eventIdStr, 10, 64)
@@ -49,7 +47,6 @@ func (h *ScoreHandler) GetScoresByEventID(w http.ResponseWriter, r *http.Request
 }
 func (h *ScoreHandler) GetScore(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	log.Println("GetScore::Fetching score with ID:", chi.URLParam(r, "scoreId"))
 	w.Header().Set("Content-Type", "application/json")
 	var resp any
 	scoreIdStr := chi.URLParam(r, "scoreId")
@@ -111,7 +108,6 @@ func (h *ScoreHandler) CreateScores(w http.ResponseWriter, r *http.Request) {
 }
 func (h *ScoreHandler) UpdateScores(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	log.Println("UpdateScores::Updating scores")
 	var req UpdateScoresRequest
 	dec := json.NewDecoder(r.Body)
 	dec.DisallowUnknownFields()
@@ -152,7 +148,6 @@ func (h *ScoreHandler) UpdateScores(w http.ResponseWriter, r *http.Request) {
 func (h *ScoreHandler) DeleteScore(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	scoreIdStr := chi.URLParam(r, "scoreId")
-	log.Println("DeleteScore::Deleting score with ID:", scoreIdStr)
 	w.Header().Set("Content-Type", "application/json")
 	var resp any
 	scoreId, err := strconv.ParseInt(scoreIdStr, 10, 64)

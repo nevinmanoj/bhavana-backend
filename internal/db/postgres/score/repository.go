@@ -122,7 +122,6 @@ func (s *scoreRepository) GetScoreByID(ctx context.Context, db sqlx.ExtContext, 
 	return &scoreFromDB, nil
 }
 func (e *scoreRepository) CreateScore(ctx context.Context, db sqlx.ExtContext, scoreToCreate *score.Score) error {
-	// fmt.Println(scoreToCreate)
 	query := `
 		INSERT INTO scores (
 			team_id,

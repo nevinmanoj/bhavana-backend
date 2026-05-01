@@ -2,8 +2,6 @@ package school
 
 import (
 	"encoding/json"
-	"fmt"
-	"log"
 	"net/http"
 	"strconv"
 
@@ -27,7 +25,6 @@ func NewSchoolHandler(s school.SchoolService, v *validator.Validate) *SchoolHand
 // school handlers
 func (h *SchoolHandler) GetSchools(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	log.Println("HandlerGetSchools::Fetching all schools")
 	w.Header().Set("Content-Type", "application/json")
 	var resp any
 	schools, err := h.service.GetAllSchools(ctx)
@@ -48,7 +45,6 @@ func (h *SchoolHandler) GetSchools(w http.ResponseWriter, r *http.Request) {
 }
 func (h *SchoolHandler) GetSchool(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	log.Println("HandlerGetSchool::Fetching school with ID:", chi.URLParam(r, "schoolId"))
 	w.Header().Set("Content-Type", "application/json")
 	var resp any
 	schoolIdStr := chi.URLParam(r, "schoolId")
@@ -117,7 +113,6 @@ func (h *SchoolHandler) CreateSchool(w http.ResponseWriter, r *http.Request) {
 func (h *SchoolHandler) UpdateSchool(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	schoolIdStr := chi.URLParam(r, "schoolId")
-	log.Println("HandlerUpdateSchool::Updating school with ID:", schoolIdStr)
 	var req UpdateSchoolRequest
 	dec := json.NewDecoder(r.Body)
 	dec.DisallowUnknownFields()
@@ -181,7 +176,6 @@ func (h *SchoolHandler) UpdateSchool(w http.ResponseWriter, r *http.Request) {
 func (h *SchoolHandler) DeleteSchool(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	schoolIdStr := chi.URLParam(r, "schoolId")
-	log.Println("HandlerDeleteSchool::Deleting school with ID:", schoolIdStr)
 	w.Header().Set("Content-Type", "application/json")
 	var resp any
 	schoolId, err := strconv.ParseInt(schoolIdStr, 10, 64)
@@ -206,7 +200,6 @@ func (h *SchoolHandler) DeleteSchool(w http.ResponseWriter, r *http.Request) {
 // student handlers
 func (h *SchoolHandler) GetStudents(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	log.Println("HandlerGetStudents::Fetching all students")
 	w.Header().Set("Content-Type", "application/json")
 	var resp any
 	filter, errresp := parseStudentFilter(r.URL.Query())
@@ -233,7 +226,6 @@ func (h *SchoolHandler) GetStudents(w http.ResponseWriter, r *http.Request) {
 }
 func (h *SchoolHandler) GetStudentsBySchoolID(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	log.Println("HandlerGetStudents::Fetching all schools")
 	w.Header().Set("Content-Type", "application/json")
 	var resp any
 	schoolIdStr := chi.URLParam(r, "schoolId")
@@ -327,7 +319,6 @@ func (h *SchoolHandler) UpdateStudent(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	log.Println("HandlerUpdateStudent::Updating student with ID:", studentIdStr)
 	var req UpdateStudentRequest
 	dec := json.NewDecoder(r.Body)
 	dec.DisallowUnknownFields()
@@ -379,7 +370,6 @@ func (h *SchoolHandler) UpdateStudent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	studentResponse := ToStudentResponse(&studentToUpdate)
-	fmt.Println(studentResponse)
 	json.NewEncoder(w).Encode(PostResponsePage[StudentResponse]{
 		Message:    "Student updated successfully",
 		Data:       studentResponse,
@@ -389,7 +379,6 @@ func (h *SchoolHandler) UpdateStudent(w http.ResponseWriter, r *http.Request) {
 func (h *SchoolHandler) DeleteStudent(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	studentIdStr := chi.URLParam(r, "studentId")
-	log.Println("HandlerDeleteSchool::Deleting student with ID:", studentIdStr)
 	w.Header().Set("Content-Type", "application/json")
 	var resp any
 	studentId, err := strconv.ParseInt(studentIdStr, 10, 64)

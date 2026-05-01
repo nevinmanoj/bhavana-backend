@@ -3,7 +3,6 @@ package school
 import (
 	"context"
 	"database/sql"
-	"log"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/nevinmanoj/bhavana-backend/internal/domain/school"
@@ -101,7 +100,6 @@ func (s *schoolRepository) GetSchoolByID(ctx context.Context, db sqlx.ExtContext
 	)
 
 	if err != nil {
-		log.Println("Error fetching school by id:", err)
 		return nil, school.ErrInternal
 	}
 
@@ -243,7 +241,6 @@ func (s *schoolRepository) GetStudentByID(ctx context.Context, db sqlx.ExtContex
 	)
 
 	if err != nil {
-		log.Println("Error fetching student by id:", err)
 		return nil, school.ErrInternal
 	}
 

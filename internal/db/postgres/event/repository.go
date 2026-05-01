@@ -3,7 +3,6 @@ package event
 import (
 	"context"
 	"database/sql"
-	"log"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/nevinmanoj/bhavana-backend/internal/core"
@@ -59,7 +58,6 @@ func (r *eventRepository) GetEventByID(ctx context.Context, db sqlx.ExtContext, 
 	)
 
 	if err != nil {
-		log.Println("Error fetching event by id:", err)
 		return nil, event.ErrInternal
 	}
 

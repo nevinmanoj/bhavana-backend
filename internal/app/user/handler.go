@@ -2,8 +2,6 @@ package user
 
 import (
 	"encoding/json"
-	"fmt"
-	"log"
 	"net/http"
 	"strconv"
 
@@ -25,7 +23,6 @@ func NewUserHandler(s user.UserService, v *validator.Validate) *UserHandler {
 }
 func (h *UserHandler) GetUsers(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	log.Println("HandlerGetUsers::Fetching all users")
 	w.Header().Set("Content-Type", "application/json")
 	var resp any
 	q := r.URL.Query()
@@ -56,7 +53,6 @@ func (h *UserHandler) GetUsers(w http.ResponseWriter, r *http.Request) {
 func (h *UserHandler) GetUser(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	userIdStr := chi.URLParam(r, "userId")
-	log.Println("HandlerGetUser::Fetching user with ID:", userIdStr)
 	w.Header().Set("Content-Type", "application/json")
 	var resp any
 	userId, err := strconv.ParseInt(userIdStr, 10, 64)
@@ -87,7 +83,6 @@ func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 	dec.DisallowUnknownFields()
 	w.Header().Set("Content-Type", "application/json")
 	if err := dec.Decode(&req); err != nil {
-		fmt.Print(err)
 		json.NewEncoder(w).Encode(ErrorResponse{
 			StatusCode: http.StatusBadRequest,
 			Message:    "invalid JSON body",

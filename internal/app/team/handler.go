@@ -2,7 +2,6 @@ package team
 
 import (
 	"encoding/json"
-	"log"
 	"net/http"
 	"strconv"
 
@@ -27,7 +26,6 @@ func NewTeamHandler(s team.TeamService, v *validator.Validate) *TeamHandler {
 
 func (h *TeamHandler) GetTeams(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	log.Println("HandlerGetTeams::Fetching all team")
 	w.Header().Set("Content-Type", "application/json")
 	var resp any
 	q := r.URL.Query()
@@ -62,7 +60,6 @@ func (h *TeamHandler) GetTeams(w http.ResponseWriter, r *http.Request) {
 func (h *TeamHandler) GetTeam(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	teamIdStr := chi.URLParam(r, "teamId")
-	log.Println("HandlerGetTeam::Fetching team with ID:", teamIdStr)
 	w.Header().Set("Content-Type", "application/json")
 	var resp any
 	teamId, err := strconv.ParseInt(teamIdStr, 10, 64)
@@ -200,7 +197,6 @@ func (h *TeamHandler) UpdateTeam(w http.ResponseWriter, r *http.Request) {
 func (h *TeamHandler) DeleteTeam(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	teamIdstr := chi.URLParam(r, "teamId")
-	log.Println("HandlerDeleteTeam::Deleting team with ID:", teamIdstr)
 	w.Header().Set("Content-Type", "application/json")
 	var resp any
 	teamID, err := strconv.ParseInt(teamIdstr, 10, 64)

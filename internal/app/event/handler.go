@@ -2,8 +2,6 @@ package event
 
 import (
 	"encoding/json"
-	"fmt"
-	"log"
 	"net/http"
 	"strconv"
 
@@ -27,7 +25,6 @@ func NewEventHandler(s event.EventService, v *validator.Validate) *EventHandler 
 
 func (h *EventHandler) GetEvents(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	log.Println("HandlerGetEvents::Fetching all events")
 	w.Header().Set("Content-Type", "application/json")
 	var resp any
 	q := r.URL.Query()
@@ -58,7 +55,6 @@ func (h *EventHandler) GetEvents(w http.ResponseWriter, r *http.Request) {
 func (h *EventHandler) GetEvent(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	eventIdStr := chi.URLParam(r, "eventId")
-	log.Println("HandlerGetEvent::Fetching event with ID:", eventIdStr)
 	w.Header().Set("Content-Type", "application/json")
 	var resp any
 	eventId, err := strconv.ParseInt(eventIdStr, 10, 64)
@@ -88,7 +84,6 @@ func (h *EventHandler) CreateEvent(w http.ResponseWriter, r *http.Request) {
 	dec.DisallowUnknownFields()
 	w.Header().Set("Content-Type", "application/json")
 	if err := dec.Decode(&req); err != nil {
-		fmt.Print(err)
 		json.NewEncoder(w).Encode(ErrorResponse{
 			StatusCode: http.StatusBadRequest,
 			Message:    "invalid JSON body",
@@ -135,13 +130,11 @@ func (h *EventHandler) CreateEvent(w http.ResponseWriter, r *http.Request) {
 func (h *EventHandler) UpdateEvent(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	eventIdStr := chi.URLParam(r, "eventId")
-	log.Println("HandlerUpdateEvent::Updating event with ID:", eventIdStr)
 	var req UpdateEventRequest
 	dec := json.NewDecoder(r.Body)
 	dec.DisallowUnknownFields()
 	w.Header().Set("Content-Type", "application/json")
 	if err := dec.Decode(&req); err != nil {
-		fmt.Print(err)
 		json.NewEncoder(w).Encode(ErrorResponse{
 			StatusCode: http.StatusBadRequest,
 			Message:    "invalid JSON body",
@@ -206,13 +199,11 @@ func (h *EventHandler) UpdateEvent(w http.ResponseWriter, r *http.Request) {
 func (h *EventHandler) UpdateEventStatus(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	eventIdStr := chi.URLParam(r, "eventId")
-	log.Println("HandlerUpdateEventStatus::Updating event status with ID:", eventIdStr)
 	var req UpdatEventStatusRequest
 	dec := json.NewDecoder(r.Body)
 	dec.DisallowUnknownFields()
 	w.Header().Set("Content-Type", "application/json")
 	if err := dec.Decode(&req); err != nil {
-		fmt.Print(err)
 		json.NewEncoder(w).Encode(ErrorResponse{
 			StatusCode: http.StatusBadRequest,
 			Message:    "invalid JSON body",
@@ -259,7 +250,6 @@ func (h *EventHandler) UpdateEventStatus(w http.ResponseWriter, r *http.Request)
 func (h *EventHandler) DeleteEvent(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	eventIdStr := chi.URLParam(r, "eventId")
-	log.Println("HandlerDeleteEvent::Deleting event with ID:", eventIdStr)
 	w.Header().Set("Content-Type", "application/json")
 	var resp any
 	eventId, err := strconv.ParseInt(eventIdStr, 10, 64)

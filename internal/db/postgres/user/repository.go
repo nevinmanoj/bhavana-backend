@@ -2,7 +2,6 @@ package user
 
 import (
 	"context"
-	"log"
 
 	"github.com/jmoiron/sqlx"
 	auth "github.com/nevinmanoj/bhavana-backend/internal/auth"
@@ -33,7 +32,6 @@ func (r *userRepository) CreateUser(ctx context.Context, db sqlx.ExtContext, pas
 	).Scan(&exists)
 
 	if err != nil {
-		log.Println("Error checking if email exists:", err)
 		return user.ErrInternal
 	}
 
@@ -42,7 +40,6 @@ func (r *userRepository) CreateUser(ctx context.Context, db sqlx.ExtContext, pas
 	}
 	passwordHash, err := auth.HashPassword(password)
 	if err != nil {
-		log.Println("Error hashing password:", err)
 		return user.ErrInternal
 	}
 	userToCreate.PasswordHash = passwordHash
@@ -65,7 +62,6 @@ func (r *userRepository) CreateUser(ctx context.Context, db sqlx.ExtContext, pas
 
 	rows, err := sqlx.NamedQueryContext(ctx, db, query, userToCreate)
 	if err != nil {
-		log.Println("Error inserting user:", err)
 		return user.ErrInternal
 	}
 	defer rows.Close()
@@ -88,7 +84,6 @@ func (r *userRepository) GetUserByEmail(ctx context.Context, db sqlx.ExtContext,
 		email,
 	)
 	if err != nil {
-		log.Println("Error fetching user by email:", err)
 		return nil, user.ErrInternal
 	}
 	if len(users) == 0 {
@@ -109,7 +104,6 @@ func (r *userRepository) GetUserByID(ctx context.Context, db sqlx.ExtContext, id
 		id,
 	)
 	if err != nil {
-		log.Println("Error fetching user by id:", err)
 		return nil, user.ErrInternal
 	}
 	if len(users) == 0 {
