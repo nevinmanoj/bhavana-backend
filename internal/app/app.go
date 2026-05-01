@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/go-chi/chi"
 	chimiddle "github.com/go-chi/chi/middleware"
@@ -84,6 +85,20 @@ func Start() error {
 
 	//CORS
 	r.Use(cors.Handler(cors.Options{
+		AllowOriginFunc: func(r *http.Request, origin string) bool {
+
+			if strings.HasPrefix(origin, "https://") && strings.HasSuffix(origin, ".lovable.app") {
+				return true
+			}
+			if origin == "http://localhost:8081" {
+				return true
+			}
+			if origin == "https://jolly-smoke-0077dfc00.7.azurestaticapps.net" {
+				return true
+			}
+			return false
+		},
+
 		AllowedOrigins:   []string{"https://*.lovable.app", "http://localhost:8081", "https://jolly-smoke-0077dfc00.7.azurestaticapps.net"},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
