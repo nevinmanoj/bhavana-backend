@@ -87,7 +87,7 @@ func Start() error {
 	r.Use(cors.Handler(cors.Options{
 		AllowOriginFunc: func(r *http.Request, origin string) bool {
 
-			if strings.HasPrefix(origin, "https://") && strings.HasSuffix(origin, ".lovable.app") {
+			if strings.Contains(origin, "521d7c39-a391-4c5e-9803-b598925e3ada") {
 				return true
 			}
 			if origin == "http://localhost:8081" {
