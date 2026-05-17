@@ -39,7 +39,7 @@ func (r *scoreRepository) GetAllScores(ctx context.Context, db sqlx.ExtContext, 
 		finalQuery, finalArgs...,
 	)
 	if err != nil {
-		return nil, err
+		return nil, score.ErrInternal
 	}
 	return scores, nil
 }
@@ -61,7 +61,8 @@ func (r *scoreRepository) GetScoresByEventID(ctx context.Context, db sqlx.ExtCon
 			ec.max_score,
 			s.judge_id,
 			u.name          AS judge_name,
-			s.score
+			s.score,
+			s.id 		    AS score_id
 	`
 
 	if !isJudge {
@@ -95,7 +96,7 @@ func (r *scoreRepository) GetScoresByEventID(ctx context.Context, db sqlx.ExtCon
 		query, args...,
 	)
 	if err != nil {
-		return nil, err
+		return nil, score.ErrInternal
 	}
 	return scores, nil
 }
@@ -140,7 +141,8 @@ func (e *scoreRepository) CreateScore(ctx context.Context, db sqlx.ExtContext, s
 
 	rows, err := sqlx.NamedQueryContext(ctx, db, query, scoreToCreate)
 	if err != nil {
-		return err
+		println(err.Error())
+		return errorMapper(err)
 	}
 	defer rows.Close()
 
@@ -149,7 +151,7 @@ func (e *scoreRepository) CreateScore(ctx context.Context, db sqlx.ExtContext, s
 		return nil
 	}
 
-	return sql.ErrNoRows
+	return score.ErrInternal
 }
 func (s *scoreRepository) UpdateScore(ctx context.Context, db sqlx.ExtContext, scoreToUpdate *score.Score) error {
 	query := `
@@ -159,12 +161,12 @@ func (s *scoreRepository) UpdateScore(ctx context.Context, db sqlx.ExtContext, s
 	`
 	result, err := sqlx.NamedExecContext(ctx, db, query, scoreToUpdate)
 	if err != nil {
-		return err
+		return errorMapper(err)
 	}
 
 	rows, err := result.RowsAffected()
 	if err != nil {
-		return err
+		return errorMapper(err)
 	}
 	if rows == 0 {
 		return score.ErrScoreNotFound
@@ -178,7 +180,7 @@ func (r *scoreRepository) DeleteScore(ctx context.Context, db sqlx.ExtContext, s
 	`
 	_, err := db.ExecContext(ctx, query, scoreID)
 	if err != nil {
-		return err
+		return errorMapper(err)
 	}
 	return nil
 }

@@ -2,8 +2,6 @@ package team
 
 import (
 	"context"
-	"database/sql"
-	"fmt"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/nevinmanoj/bhavana-backend/internal/domain/team"
@@ -52,7 +50,7 @@ func (e *eventRepository) GetAllTeams(ctx context.Context, db sqlx.ExtContext, f
 	}
 	finalQuery, finalargs, err := buildTeamQuery(baseQuery, conditions, args, filter)
 	if err != nil {
-		return nil, err
+		return nil, team.ErrInternal
 	}
 	err = sqlx.SelectContext(
 		ctx, db,
@@ -60,7 +58,7 @@ func (e *eventRepository) GetAllTeams(ctx context.Context, db sqlx.ExtContext, f
 		finalQuery, finalargs...,
 	)
 	if err != nil {
-		return nil, err
+		return nil, team.ErrInternal
 	}
 	return teams, nil
 }
@@ -93,10 +91,10 @@ func (e *eventRepository) GetTeamByID(ctx context.Context, db sqlx.ExtContext, t
 		baseQuery, args...,
 	)
 	if err != nil {
-		return nil, err
+		return nil, team.ErrInternal
 	}
 	if len(teams) == 0 {
-		return nil, fmt.Errorf("Team with id %d not found", teamId)
+		return nil, team.ErrTeamNotFound
 	}
 	return &teams[0], nil
 }
@@ -115,7 +113,7 @@ func (e *eventRepository) CreateTeam(ctx context.Context, db sqlx.ExtContext, te
 
 	rows, err := sqlx.NamedQueryContext(ctx, db, query, teamToCreate)
 	if err != nil {
-		return err
+		return errorMapper(err)
 	}
 	defer rows.Close()
 
@@ -124,12 +122,19 @@ func (e *eventRepository) CreateTeam(ctx context.Context, db sqlx.ExtContext, te
 		return nil
 	}
 
-	return sql.ErrNoRows
+	return team.ErrInternal
 }
 func (e *eventRepository) DeleteTeam(ctx context.Context, db sqlx.ExtContext, teamID int64) error {
 	query := `DELETE FROM teams WHERE id = $1`
-	_, err := db.ExecContext(ctx, query, teamID)
-	return err
+	result, err := db.ExecContext(ctx, query, teamID)
+	if err != nil {
+		return err
+	}
+	rows, _ := result.RowsAffected()
+	if rows == 0 {
+		return team.ErrTeamNotFound
+	}
+	return nil
 }
 
 // team memebers
@@ -165,7 +170,7 @@ func (e *eventRepository) CreateTeamMember(ctx context.Context, db sqlx.ExtConte
 
 	rows, err := sqlx.NamedQueryContext(ctx, db, query, teamMemberToCreate)
 	if err != nil {
-		return err
+		return errorMapper(err)
 	}
 	defer rows.Close()
 
@@ -174,12 +179,19 @@ func (e *eventRepository) CreateTeamMember(ctx context.Context, db sqlx.ExtConte
 		return nil
 	}
 
-	return sql.ErrNoRows
+	return team.ErrInternal
 }
 func (e *eventRepository) DeleteTeamMember(ctx context.Context, db sqlx.ExtContext, teamID int64, studentID int64) error {
 	query := `DELETE FROM team_members 
 	WHERE team_id = $1 
 	AND student_id = $2`
-	_, err := db.ExecContext(ctx, query, teamID, studentID)
-	return err
+	result, err := db.ExecContext(ctx, query, teamID, studentID)
+	if err != nil {
+		return errorMapper(err)
+	}
+	rows, _ := result.RowsAffected()
+	if rows == 0 {
+		return team.ErrTeamMemberNotFound
+	}
+	return nil
 }

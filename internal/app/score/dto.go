@@ -20,7 +20,7 @@ type UpdateScoresRequest struct {
 }
 type UpdateScoreRequest struct {
 	ID    int64   `json:"id" validate:"required"`
-	Score float64 `json:"score" validate:"required,min=0"`
+	Score float64 `json:"score" validate:"min=0"`
 }
 
 type ScoreResponse struct {

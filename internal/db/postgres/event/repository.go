@@ -2,7 +2,6 @@ package event
 
 import (
 	"context"
-	"database/sql"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/nevinmanoj/bhavana-backend/internal/core"
@@ -43,7 +42,7 @@ func (r *eventRepository) GetAllEvents(ctx context.Context, db sqlx.ExtContext, 
 		finalQuery, finalArgs...,
 	)
 	if err != nil {
-		return nil, err
+		return nil, event.ErrInternal
 	}
 	return events, nil
 }
@@ -96,7 +95,7 @@ func (r *eventRepository) CreateEvent(ctx context.Context, db sqlx.ExtContext, e
 
 	rows, err := sqlx.NamedQueryContext(ctx, db, query, eventToCreate)
 	if err != nil {
-		return err
+		return errorMapper(err)
 	}
 	defer rows.Close()
 
@@ -105,7 +104,7 @@ func (r *eventRepository) CreateEvent(ctx context.Context, db sqlx.ExtContext, e
 		return nil
 	}
 
-	return sql.ErrNoRows
+	return event.ErrInternal
 }
 func (r *eventRepository) UpdateEvent(ctx context.Context, db sqlx.ExtContext, eventToUpdate *event.Event) error {
 
@@ -126,10 +125,10 @@ func (r *eventRepository) UpdateEvent(ctx context.Context, db sqlx.ExtContext, e
 
 	rows, err := result.RowsAffected()
 	if err != nil {
-		return err
+		return errorMapper(err)
 	}
 	if rows == 0 {
-		return event.ErrInternal
+		return event.ErrNotFound
 	}
 	return nil
 }
@@ -142,7 +141,7 @@ func (r *eventRepository) UpdateEventStatus(ctx context.Context, db sqlx.ExtCont
 
 	rows, err := result.RowsAffected()
 	if err != nil {
-		return err
+		return errorMapper(err)
 	}
 	if rows == 0 {
 		return event.ErrNotFound
@@ -175,7 +174,7 @@ func (r *eventRepository) GetEventJudges(ctx context.Context, db sqlx.ExtContext
 		eventID,
 	)
 	if err != nil {
-		return nil, err
+		return nil, event.ErrInternal
 	}
 	return judges, nil
 }
@@ -193,14 +192,14 @@ func (r *eventRepository) CreateEventJudge(ctx context.Context, db sqlx.ExtConte
 	`
 	rows, err := sqlx.NamedQueryContext(ctx, db, query, judgeToCreate)
 	if err != nil {
-		return err
+		return errorMapper(err)
 	}
 	defer rows.Close()
 	if rows.Next() {
 		rows.Scan(&judgeToCreate.EventID, &judgeToCreate.UserID)
 		return nil
 	}
-	return sql.ErrNoRows
+	return event.ErrInternal
 }
 func (r *eventRepository) DeleteEventJudge(ctx context.Context, db sqlx.ExtContext, eventID int64, userID int64) error {
 	query := `
@@ -209,7 +208,7 @@ func (r *eventRepository) DeleteEventJudge(ctx context.Context, db sqlx.ExtConte
 	`
 	_, err := db.ExecContext(ctx, query, eventID, userID)
 	if err != nil {
-		return err
+		return errorMapper(err)
 	}
 	return nil
 }
@@ -226,7 +225,7 @@ func (r *eventRepository) GetEventCriteria(ctx context.Context, db sqlx.ExtConte
 		eventID,
 	)
 	if err != nil {
-		return nil, err
+		return nil, event.ErrInternal
 	}
 	return criteria, nil
 }
@@ -246,7 +245,7 @@ func (r *eventRepository) CreateEventCriteria(ctx context.Context, db sqlx.ExtCo
 	`
 	rows, err := sqlx.NamedQueryContext(ctx, db, query, criteriaToCreate)
 	if err != nil {
-		return err
+		return errorMapper(err)
 	}
 	defer rows.Close()
 	if rows.Next() {
@@ -254,7 +253,7 @@ func (r *eventRepository) CreateEventCriteria(ctx context.Context, db sqlx.ExtCo
 		return nil
 	}
 
-	return sql.ErrNoRows
+	return event.ErrInternal
 }
 func (r *eventRepository) DeleteEventCriteria(ctx context.Context, db sqlx.ExtContext, criteriaID int64) error {
 	query := `
@@ -263,7 +262,7 @@ func (r *eventRepository) DeleteEventCriteria(ctx context.Context, db sqlx.ExtCo
 	`
 	_, err := db.ExecContext(ctx, query, criteriaID)
 	if err != nil {
-		return err
+		return errorMapper(err)
 	}
 	return nil
 }

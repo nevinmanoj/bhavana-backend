@@ -22,6 +22,7 @@ type EventScoreRow struct {
 	JudgeID       *int64   `db:"judge_id"`
 	JudgeName     *string  `db:"judge_name"`
 	Score         *float64 `db:"score"`
+	ScoreID       *int64   `db:"score_id"`
 }
 
 // repsonse models
@@ -51,6 +52,7 @@ type CriteriaScore struct {
 }
 
 type JudgeScore struct {
+	ScoreID   int64   `json:"score_id"`
 	JudgeID   int64   `json:"judge_id"`
 	JudgeName string  `json:"judge_name"`
 	Score     float64 `json:"score"`

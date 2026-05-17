@@ -11,6 +11,7 @@ type SchoolWriteRepository interface {
 	CreateSchool(ctx context.Context, db sqlx.ExtContext, SchoolToCreate *School) error
 	UpdateSchool(ctx context.Context, db sqlx.ExtContext, SchoolToUpdate *School) error
 	DeleteSchool(ctx context.Context, db sqlx.ExtContext, id int64) error
+	SchoolExists(ctx context.Context, db sqlx.ExtContext, schoolID int64) (bool, error)
 
 	CreateStudent(ctx context.Context, db sqlx.ExtContext, StudentToCreate *Student) error
 	UpdateStudent(ctx context.Context, db sqlx.ExtContext, StudentToUpdate *Student) error

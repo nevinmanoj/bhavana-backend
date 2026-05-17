@@ -8,7 +8,6 @@ import (
 	"github.com/go-chi/chi"
 	"github.com/go-playground/validator/v10"
 	. "github.com/nevinmanoj/bhavana-backend/api"
-	"github.com/nevinmanoj/bhavana-backend/internal/app/errmap"
 	"github.com/nevinmanoj/bhavana-backend/internal/domain/team"
 	"github.com/nevinmanoj/bhavana-backend/internal/middleware"
 	"github.com/nevinmanoj/bhavana-backend/internal/rbac"
@@ -37,7 +36,7 @@ func (h *TeamHandler) GetTeams(w http.ResponseWriter, r *http.Request) {
 
 	teams, err := h.service.GetTeams(ctx, filter)
 	if err != nil {
-		resp = errmap.GetDomainErrorResponse(err)
+		resp = GetTeamDomainErrorResponse(err)
 	} else {
 		role := ctx.Value(middleware.ContextUserRole).(rbac.UserRole)
 		switch role {
@@ -64,13 +63,16 @@ func (h *TeamHandler) GetTeam(w http.ResponseWriter, r *http.Request) {
 	var resp any
 	teamId, err := strconv.ParseInt(teamIdStr, 10, 64)
 	if err != nil {
-		resp = errmap.GetDomainErrorResponse(err)
+		resp = ErrorResponse{
+			StatusCode: http.StatusBadRequest,
+			Message:    "Invalid team ID in URL parameter",
+		}
 		json.NewEncoder(w).Encode(resp)
 		return
 	}
 	result, err := h.service.GetTeamsByID(ctx, teamId)
 	if err != nil {
-		resp = errmap.GetDomainErrorResponse(err)
+		resp = GetTeamDomainErrorResponse(err)
 	} else {
 		role := ctx.Value(middleware.ContextUserRole).(rbac.UserRole)
 		switch role {
@@ -101,7 +103,7 @@ func (h *TeamHandler) CreateTeam(w http.ResponseWriter, r *http.Request) {
 	if err := dec.Decode(&req); err != nil {
 		json.NewEncoder(w).Encode(ErrorResponse{
 			StatusCode: http.StatusBadRequest,
-			Message:    "invalid JSON body0 " + err.Error(),
+			Message:    "invalid JSON body " + err.Error(),
 		})
 		return
 	}
@@ -121,10 +123,7 @@ func (h *TeamHandler) CreateTeam(w http.ResponseWriter, r *http.Request) {
 	}
 	err := h.service.CreateTeam(ctx, &teamToCreate)
 	if err != nil {
-		json.NewEncoder(w).Encode(ErrorResponse{
-			StatusCode: http.StatusInternalServerError,
-			Message:    err.Error(),
-		})
+		json.NewEncoder(w).Encode(GetTeamDomainErrorResponse(err))
 		return
 	}
 	teamResponse := ToTeamFullResponse(&teamToCreate)
@@ -143,7 +142,7 @@ func (h *TeamHandler) UpdateTeam(w http.ResponseWriter, r *http.Request) {
 	if err := dec.Decode(&req); err != nil {
 		json.NewEncoder(w).Encode(ErrorResponse{
 			StatusCode: http.StatusBadRequest,
-			Message:    "invalid JSON body" + err.Error(),
+			Message:    "invalid JSON body " + err.Error(),
 		})
 		return
 	}
@@ -181,10 +180,7 @@ func (h *TeamHandler) UpdateTeam(w http.ResponseWriter, r *http.Request) {
 	}
 	err = h.service.UpdateTeam(ctx, &teamToUpdate)
 	if err != nil {
-		json.NewEncoder(w).Encode(ErrorResponse{
-			StatusCode: http.StatusInternalServerError,
-			Message:    err.Error(),
-		})
+		json.NewEncoder(w).Encode(GetTeamDomainErrorResponse(err))
 		return
 	}
 	teamResponse := ToTeamFullResponse(&teamToUpdate)
@@ -201,13 +197,16 @@ func (h *TeamHandler) DeleteTeam(w http.ResponseWriter, r *http.Request) {
 	var resp any
 	teamID, err := strconv.ParseInt(teamIdstr, 10, 64)
 	if err != nil {
-		resp = errmap.GetDomainErrorResponse(err)
+		resp = ErrorResponse{
+			StatusCode: http.StatusBadRequest,
+			Message:    "Invalid team ID in URL parameter",
+		}
 		json.NewEncoder(w).Encode(resp)
 		return
 	}
 	err = h.service.DeleteTeam(ctx, teamID)
 	if err != nil {
-		resp = errmap.GetDomainErrorResponse(err)
+		resp = GetTeamDomainErrorResponse(err)
 	} else {
 		resp = DeleteResponsePage{
 			StatusCode: http.StatusNoContent,

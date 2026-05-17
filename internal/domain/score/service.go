@@ -84,6 +84,7 @@ func (s *scoreService) GetEventScoresDetailed(ctx context.Context, eventID int64
 			t := teamMap[row.TeamID]
 			cs := t.Scores[row.CriteriaID]
 			cs.Judges = append(cs.Judges, JudgeScore{
+				ScoreID:   *row.ScoreID,
 				JudgeID:   *row.JudgeID,
 				JudgeName: *row.JudgeName,
 				Score:     *row.Score,
@@ -139,7 +140,7 @@ func (s *scoreService) CreateScores(ctx context.Context, scoresToCreate []Score)
 	for _, scoreToCreate := range scoresToCreate {
 		err := s.repo.CreateScore(ctx, tx, &scoreToCreate)
 		if err != nil {
-			return mapScoreError(err)
+			return err
 		}
 	}
 	return tx.Commit()
@@ -160,7 +161,7 @@ func (s *scoreService) UpdateScores(ctx context.Context, scoresToUpdate []Score)
 		}
 		err = s.repo.UpdateScore(ctx, tx, &scoreToUpdate)
 		if err != nil {
-			return mapScoreError(err)
+			return err
 		}
 	}
 	return tx.Commit()

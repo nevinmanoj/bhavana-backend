@@ -183,10 +183,7 @@ func (h *EventHandler) UpdateEvent(w http.ResponseWriter, r *http.Request) {
 
 	err = h.service.UpdateEvent(ctx, &eventToUpdate)
 	if err != nil {
-		json.NewEncoder(w).Encode(ErrorResponse{
-			StatusCode: http.StatusInternalServerError,
-			Message:    err.Error(),
-		})
+		json.NewEncoder(w).Encode(GetEventDomainErrorResponse(err))
 		return
 	}
 	eventResponse := ToEventDetailsResponse(&eventToUpdate)
@@ -235,10 +232,7 @@ func (h *EventHandler) UpdateEventStatus(w http.ResponseWriter, r *http.Request)
 	}
 	err = h.service.UpdateEventStatus(ctx, *eventId, req.Status)
 	if err != nil {
-		json.NewEncoder(w).Encode(ErrorResponse{
-			StatusCode: http.StatusInternalServerError,
-			Message:    err.Error(),
-		})
+		json.NewEncoder(w).Encode(GetEventDomainErrorResponse(err))
 		return
 	}
 	json.NewEncoder(w).Encode(PutResponsePage[core.EventStatus]{
@@ -254,13 +248,16 @@ func (h *EventHandler) DeleteEvent(w http.ResponseWriter, r *http.Request) {
 	var resp any
 	eventId, err := strconv.ParseInt(eventIdStr, 10, 64)
 	if err != nil {
-		resp = errmap.GetDomainErrorResponse(err)
+		resp = ErrorResponse{
+			StatusCode: http.StatusBadRequest,
+			Message:    "Invalid event ID in URL parameter",
+		}
 		json.NewEncoder(w).Encode(resp)
 		return
 	}
 	err = h.service.DeleteEvent(ctx, eventId)
 	if err != nil {
-		resp = errmap.GetDomainErrorResponse(err)
+		resp = GetEventDomainErrorResponse(err)
 	} else {
 		resp = DeleteResponsePage{
 			StatusCode: http.StatusNoContent,

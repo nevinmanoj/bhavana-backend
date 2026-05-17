@@ -2,7 +2,6 @@ package user
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/jmoiron/sqlx"
 	auth "github.com/nevinmanoj/bhavana-backend/internal/auth"
@@ -29,14 +28,14 @@ func NewUserService(db *sqlx.DB, jwtSecret []byte, repo UserWriteRepository) Use
 func (s *userService) CreateUser(ctx context.Context, user *User, password, jwtToken string) error {
 	if user.Role == rbac.UserRoleAdmin || user.Role == rbac.UserRoleSchoolAdmin {
 		if jwtToken == "" {
-			return fmt.Errorf("Unauthorized: JWT token is required to create admin/school_admin users")
+			return ErrUnauthorized
 		}
 		claims, err := auth.ParseToken(jwtToken, s.jwtSecret)
 		if err != nil {
-			return fmt.Errorf("Unauthorized")
+			return ErrUnauthorized
 		}
 		if claims.Role != rbac.UserRoleAdmin {
-			return fmt.Errorf("Forbidden: Only admins can create admin/school_admin users")
+			return ErrUnauthorized
 		}
 	}
 	return s.repo.CreateUser(ctx, s.db, password, user)
@@ -49,7 +48,7 @@ func (s *userService) LoginUser(ctx context.Context, email, password string) (st
 	}
 	err = auth.CheckPassword(password, user.PasswordHash)
 	if err != nil {
-		return "", nil, fmt.Errorf("Invalid credentials")
+		return "", nil, ErrInvalidCredentials
 	}
 
 	// create and issue JWT token

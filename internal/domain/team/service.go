@@ -85,19 +85,22 @@ func (s *teamService) CreateTeam(ctx context.Context, teamToCreate *TeamFull) er
 	defer tx.Rollback()
 	access, err := s.accessService.CanCreateTeam(ctx, teamToCreate.SchoolID)
 	if err != nil {
-		return err
+		return ErrUnauthorized
 	}
 	if !access {
-		return fmt.Errorf("Unauthorized")
+		return ErrUnauthorized
 	}
 	//get event associated to check constraints
 	event, err := s.eventsRepo.GetEventByID(ctx, tx, teamToCreate.EventID)
 	if err != nil {
-		return fmt.Errorf("error fetching event: %w", err)
+		return ErrInternal
 	}
 	//check if team members constraints are satisfied
-	if event.MaxTeamSize < int64(len(teamToCreate.Members)) || event.MinTeamSize > int64(len(teamToCreate.Members)) {
-		return fmt.Errorf("No of Team members are not within limit (%d-%d)", event.MinTeamSize, event.MaxTeamSize)
+	if event.MaxTeamSize < int64(len(teamToCreate.Members)) {
+		return ErrTeamSizeExceedsLimit
+	}
+	if event.MinTeamSize > int64(len(teamToCreate.Members)) {
+		return ErrTeamSizeBelowMinimum
 	}
 
 	//fetch teams for this event from this school to see if MaxTeamsPerSchool is exceeded
@@ -107,42 +110,45 @@ func (s *teamService) CreateTeam(ctx context.Context, teamToCreate *TeamFull) er
 	}
 	teamsInDB, err := s.repo.GetAllTeams(ctx, tx, teamsFilter)
 	if event.MaxTeamsPerSchool <= int64(len(teamsInDB)) {
-		return fmt.Errorf("MaxTeamsPerSchool limit exceeded")
+		return ErrTeamCountExceedsLimit
 	}
 	//create Team
 	err = s.repo.CreateTeam(ctx, tx, &teamToCreate.Team)
 	if err != nil {
-		return fmt.Errorf("error creating Team: %w", err)
+		return ErrInternal
 	}
 	//create Team Members
 	err = s.syncTeamMembers(ctx, tx, teamToCreate)
 	if err != nil {
-		return fmt.Errorf("error creating Team Members: %w", err)
+		return err
 	}
 	return tx.Commit()
 }
 func (s *teamService) UpdateTeam(ctx context.Context, teamToUpdate *TeamFull) error {
 	access, err := s.accessService.CanModifyTeam(ctx, teamToUpdate.ID)
 	if err != nil {
-		return err
+		return ErrUnauthorized
 	}
 	if !access {
-		return fmt.Errorf("Unauthorized")
+		return ErrUnauthorized
 	}
 	tx, err := s.db.BeginTxx(ctx, nil)
 	if err != nil {
-		return fmt.Errorf("error starting transaction: %w", err)
+		return ErrInternal
 	}
 	defer tx.Rollback()
 
 	//get event associated to check constraints
 	event, err := s.eventsRepo.GetEventByID(ctx, tx, teamToUpdate.EventID)
 	if err != nil {
-		return fmt.Errorf("error fetching event: %w", err)
+		return ErrInternal
 	}
 	//check if team members constraints are satisfied
-	if event.MaxTeamSize < int64(len(teamToUpdate.Members)) || event.MinTeamSize > int64(len(teamToUpdate.Members)) {
-		return fmt.Errorf("No of Team members are not within limit (%d-%d)", event.MinTeamSize, event.MaxTeamSize)
+	if event.MaxTeamSize < int64(len(teamToUpdate.Members)) {
+		return ErrTeamSizeExceedsLimit
+	}
+	if event.MinTeamSize > int64(len(teamToUpdate.Members)) {
+		return ErrTeamSizeBelowMinimum
 	}
 
 	//fetch teams for this event from this school to see if MaxTeamsPerSchool is exceeded
@@ -153,24 +159,24 @@ func (s *teamService) UpdateTeam(ctx context.Context, teamToUpdate *TeamFull) er
 	teamsInDB, err := s.repo.GetAllTeams(ctx, tx, teamsFilter)
 	//here we are only checking < because this event is also counted in teams
 	if event.MaxTeamsPerSchool < int64(len(teamsInDB)) {
-		return fmt.Errorf("MaxTeamsPerSchool limit exceeded")
+		return ErrTeamCountExceedsLimit
 	}
 	//cant update Team as cant chnge school, event or chest number
 
 	//update Team Members
 	err = s.syncTeamMembers(ctx, tx, teamToUpdate)
 	if err != nil {
-		return fmt.Errorf("error updating Team Members: %w", err)
+		return err
 	}
 	return tx.Commit()
 }
 func (s *teamService) DeleteTeam(ctx context.Context, teamID int64) error {
 	access, err := s.accessService.CanCreateTeam(ctx, teamID)
 	if err != nil {
-		return err
+		return ErrUnauthorized
 	}
 	if !access {
-		return fmt.Errorf("Unauthorized")
+		return ErrUnauthorized
 	}
 	return s.repo.DeleteTeam(ctx, s.db, teamID)
 }
@@ -183,7 +189,7 @@ func (s *teamService) syncTeamMembers(ctx context.Context, tx *sqlx.Tx, team *Te
 	if teamID != 0 {
 		existing, err = s.repo.GetTeamMembers(ctx, tx, team.ID)
 		if err != nil {
-			return fmt.Errorf("error fetching team members: %w", err)
+			return ErrInternal
 		}
 	}
 	requested := team.Members
@@ -201,7 +207,7 @@ func (s *teamService) syncTeamMembers(ctx context.Context, tx *sqlx.Tx, team *Te
 	for _, j := range existing {
 		if !requestedMap[j.StudentID] {
 			if err := s.repo.DeleteTeamMember(ctx, tx, teamID, j.StudentID); err != nil {
-				return fmt.Errorf("error deleting team member: %w", err)
+				return err
 			}
 		}
 	}
@@ -211,30 +217,30 @@ func (s *teamService) syncTeamMembers(ctx context.Context, tx *sqlx.Tx, team *Te
 			// Check if the student exists
 			student, err := s.schoolRepo.GetStudentByID(ctx, tx, j.StudentID)
 			if err != nil {
-				return fmt.Errorf("error: checking for student constraints: %w", err)
+				return ErrInternal
 			}
 			event, err := s.eventsRepo.GetEventByID(ctx, tx, team.EventID)
 			if err != nil {
-				return fmt.Errorf("error: checking for event constraints: %w", err)
+				return ErrInternal
 			}
 			if event.Category != student.Category {
-				return fmt.Errorf("error: student and event category doesnt match")
+				return ErrCategoryMismatch
 			}
 			if team.Team.SchoolID != student.SchoolID {
-				return fmt.Errorf("error: school id of student does not match with school id in team")
+				return ErrSchoolMismatch
 			}
 
 			if err := s.repo.CreateTeamMember(ctx, tx, &TeamMember{
 				TeamID:    team.ID,
 				StudentID: j.StudentID,
 			}); err != nil {
-				return fmt.Errorf("error adding team member: %w", err)
+				return err
 			}
 		}
 	}
 	createdTeamMembers, err := s.repo.GetTeamMembers(ctx, tx, team.ID)
 	if err != nil {
-		return fmt.Errorf("error fetching created/updated team members: %w", err)
+		return ErrInternal
 	}
 	team.Members = createdTeamMembers
 	return nil

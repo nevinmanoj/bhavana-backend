@@ -8,7 +8,6 @@ import (
 	"github.com/go-chi/chi"
 	"github.com/go-playground/validator/v10"
 	. "github.com/nevinmanoj/bhavana-backend/api"
-	errmap "github.com/nevinmanoj/bhavana-backend/internal/app/errmap"
 	user "github.com/nevinmanoj/bhavana-backend/internal/domain/user"
 	"github.com/nevinmanoj/bhavana-backend/internal/rbac"
 )
@@ -34,7 +33,7 @@ func (h *UserHandler) GetUsers(w http.ResponseWriter, r *http.Request) {
 	}
 	users, err := h.service.GetAllUsers(ctx, filter)
 	if err != nil {
-		resp = errmap.GetDomainErrorResponse(err)
+		resp = GetUserDomainErrorResponse(err)
 	} else {
 
 		userResponses := make([]UserResponse, len(users))
@@ -57,13 +56,13 @@ func (h *UserHandler) GetUser(w http.ResponseWriter, r *http.Request) {
 	var resp any
 	userId, err := strconv.ParseInt(userIdStr, 10, 64)
 	if err != nil {
-		resp = errmap.GetDomainErrorResponse(err)
+		resp = GetUserDomainErrorResponse(err)
 		json.NewEncoder(w).Encode(resp)
 		return
 	}
 	result, err := h.service.GetUserByID(ctx, userId)
 	if err != nil {
-		resp = errmap.GetDomainErrorResponse(err)
+		resp = GetUserDomainErrorResponse(err)
 	} else {
 		userResponse := ToUserResponse(result)
 		resp = GetResponsePage[UserResponse]{
@@ -148,7 +147,7 @@ func (h *UserHandler) LoginUser(w http.ResponseWriter, r *http.Request) {
 
 	token, user, err := h.service.LoginUser(ctx, email, password)
 	if err != nil {
-		resp := errmap.GetDomainErrorResponse(err)
+		resp := GetUserDomainErrorResponse(err)
 		json.NewEncoder(w).Encode(resp)
 		return
 	}

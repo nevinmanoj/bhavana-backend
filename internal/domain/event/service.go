@@ -70,7 +70,7 @@ func (s *eventService) CreateEvent(ctx context.Context, event *EventDetails) err
 	//create event
 	err = s.repo.CreateEvent(ctx, tx, &event.Event)
 	if err != nil {
-		return fmt.Errorf("error creating event: %w", err)
+		return err
 	}
 	//create judges
 	if err := s.syncEventJudges(ctx, tx, event); err != nil {
@@ -90,11 +90,11 @@ func (s *eventService) UpdateEvent(ctx context.Context, event *EventDetails) err
 	}
 	//check if finalized
 	if existingEvent.Status == core.EventStatusFinalized {
-		return fmt.Errorf("finalized events cannot be updated")
+		return ErrEventFinalized
 	}
 	//check if status is being updated to draft from open or closed
 	if existingEvent.Status != core.EventStatusDraft && event.Event.Status == core.EventStatusDraft {
-		return fmt.Errorf("cannot change event status back to draft")
+		return ErrInvalidStatusChange
 	}
 	//check if we are editing core fields when not in draft status
 	if existingEvent.Status != core.EventStatusDraft {
@@ -105,13 +105,13 @@ func (s *eventService) UpdateEvent(ctx context.Context, event *EventDetails) err
 			existingEvent.MinTeamSize != event.Event.MinTeamSize ||
 			existingEvent.MaxTeamSize != event.Event.MaxTeamSize ||
 			existingEvent.MaxTeamsPerSchool != event.Event.MaxTeamsPerSchool {
-			return fmt.Errorf("cannot edit core fields of a non-draft event")
+			return ErrEventNotDraft
 		}
 	}
 
 	tx, err := s.db.BeginTxx(ctx, nil)
 	if err != nil {
-		return fmt.Errorf("error starting transaction: %w", err)
+		return ErrInternal
 	}
 	defer tx.Rollback()
 	event.Event.CreatedAt = existingEvent.CreatedAt
@@ -119,7 +119,7 @@ func (s *eventService) UpdateEvent(ctx context.Context, event *EventDetails) err
 	//update the core fields
 	err = s.repo.UpdateEvent(ctx, tx, &event.Event)
 	if err != nil {
-		return fmt.Errorf("error updating event: %w", err)
+		return err
 	}
 
 	//sync judges
@@ -173,7 +173,7 @@ func (s *eventService) syncEventJudges(ctx context.Context, tx *sqlx.Tx, event *
 	if eventID != 0 {
 		existing, err = s.repo.GetEventJudges(ctx, tx, event.Event.ID)
 		if err != nil {
-			return fmt.Errorf("error fetching event judges: %w", err)
+			return err
 		}
 	}
 	requested := event.Judges
@@ -191,10 +191,10 @@ func (s *eventService) syncEventJudges(ctx context.Context, tx *sqlx.Tx, event *
 	for _, j := range existing {
 		if !requestedMap[j.UserID] {
 			if event.Event.Status != core.EventStatusDraft {
-				return fmt.Errorf("Judges can only be removed when the EventStatus:Draft")
+				return ErrInvalidJudgeRemoval
 			}
 			if err := s.repo.DeleteEventJudge(ctx, tx, eventID, j.UserID); err != nil {
-				return fmt.Errorf("error deleting judge: %w", err)
+				return err
 			}
 		}
 	}
@@ -203,27 +203,27 @@ func (s *eventService) syncEventJudges(ctx context.Context, tx *sqlx.Tx, event *
 	for _, j := range requested {
 		if !existingMap[j.UserID] {
 			if event.Event.Status == core.EventStatusFinalized {
-				return fmt.Errorf("Judges cannot be added in EventStatus:Finalized")
+				return ErrInvalidJudgeAssignment
 			}
 			// Check if the user exists as a judge
 			exists, err := s.userRepo.ExistsAsJudge(ctx, tx, j.UserID)
 			if err != nil {
-				return fmt.Errorf("error checking if user exists as judge: %w", err)
+				return ErrInternal
 			}
 			if !exists {
-				return fmt.Errorf("user with ID %d does not exist or is not a judge", j.UserID)
+				return ErrInvalidJudge
 			}
 			if err := s.repo.CreateEventJudge(ctx, tx, &EventJudge{
 				EventID: eventID,
 				UserID:  j.UserID,
 			}); err != nil {
-				return fmt.Errorf("error adding judge: %w", err)
+				return ErrInternal
 			}
 		}
 	}
 	createdJudges, err := s.repo.GetEventJudges(ctx, tx, event.Event.ID)
 	if err != nil {
-		return fmt.Errorf("error fetching created judges: %w", err)
+		return ErrInternal
 	}
 	event.Judges = createdJudges
 	return nil
@@ -236,7 +236,7 @@ func (s *eventService) syncEventCriterias(ctx context.Context, tx *sqlx.Tx, even
 	if eventID != 0 {
 		existing, err = s.repo.GetEventCriteria(ctx, tx, event.Event.ID)
 		if err != nil {
-			return fmt.Errorf("error fetching event criteria: %w", err)
+			return ErrInternal
 		}
 	}
 	requested := event.Criteria
@@ -256,10 +256,10 @@ func (s *eventService) syncEventCriterias(ctx context.Context, tx *sqlx.Tx, even
 	for _, c := range existing {
 		if !requestedMap[c.ID] {
 			if event.Event.Status != core.EventStatusDraft {
-				return fmt.Errorf("Event Criterias can only be removed when EventStatus:Draft")
+				return ErrInvalidCriteriaDeletion
 			}
 			if err := s.repo.DeleteEventCriteria(ctx, tx, c.ID); err != nil {
-				return fmt.Errorf("error deleting criteria: %w", err)
+				return ErrInternal
 			}
 			criteriaUpdated = true
 		}
@@ -269,7 +269,7 @@ func (s *eventService) syncEventCriterias(ctx context.Context, tx *sqlx.Tx, even
 		_, exists := existingMap[c.ID]
 		if !exists {
 			if event.Event.Status != core.EventStatusDraft {
-				return fmt.Errorf("Event Criterias can only be added when EventStatus:Draft")
+				return ErrInvalidCriteriaAddition
 			}
 			// insert new criteria
 			if err := s.repo.CreateEventCriteria(ctx, tx, &EventCriteria{
@@ -277,7 +277,7 @@ func (s *eventService) syncEventCriterias(ctx context.Context, tx *sqlx.Tx, even
 				Title:    c.Title,
 				MaxScore: c.MaxScore,
 			}); err != nil {
-				return fmt.Errorf("error adding criteria: %w", err)
+				return ErrInternal
 			}
 			criteriaUpdated = true
 		}
@@ -286,7 +286,7 @@ func (s *eventService) syncEventCriterias(ctx context.Context, tx *sqlx.Tx, even
 	if criteriaUpdated {
 		createdCriteria, err := s.repo.GetEventCriteria(ctx, tx, event.Event.ID)
 		if err != nil {
-			return fmt.Errorf("error fetching created criteria: %w", err)
+			return ErrInternal
 		}
 		event.Criteria = createdCriteria
 	}

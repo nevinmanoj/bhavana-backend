@@ -8,7 +8,6 @@ import (
 	"github.com/go-chi/chi"
 	"github.com/go-playground/validator/v10"
 	. "github.com/nevinmanoj/bhavana-backend/api"
-	"github.com/nevinmanoj/bhavana-backend/internal/app/errmap"
 	"github.com/nevinmanoj/bhavana-backend/internal/domain/score"
 )
 
@@ -28,14 +27,17 @@ func (h *ScoreHandler) GetScoresByEventID(w http.ResponseWriter, r *http.Request
 	var resp any
 	eventID, err := strconv.ParseInt(eventIdStr, 10, 64)
 	if err != nil {
-		resp = errmap.GetDomainErrorResponse(err)
+		resp = ErrorResponse{
+			StatusCode: http.StatusBadRequest,
+			Message:    "invalid event ID",
+		}
 		json.NewEncoder(w).Encode(resp)
 		return
 	}
 
 	scores, err := h.service.GetEventScoresDetailed(ctx, eventID)
 	if err != nil {
-		resp = errmap.GetDomainErrorResponse(err)
+		resp = GetScoreDomainErrorResponse(err)
 	} else {
 		resp = GetResponsePage[score.EventScoresDetailed]{
 			StatusCode: 200,
@@ -52,13 +54,16 @@ func (h *ScoreHandler) GetScore(w http.ResponseWriter, r *http.Request) {
 	scoreIdStr := chi.URLParam(r, "scoreId")
 	scoreId, err := strconv.ParseInt(scoreIdStr, 10, 64)
 	if err != nil {
-		resp = errmap.GetDomainErrorResponse(err)
+		resp = ErrorResponse{
+			StatusCode: http.StatusBadRequest,
+			Message:    "invalid score ID",
+		}
 		json.NewEncoder(w).Encode(resp)
 		return
 	}
 	scoreFromDB, err := h.service.GetScoretByID(ctx, scoreId)
 	if err != nil {
-		resp = errmap.GetDomainErrorResponse(err)
+		resp = GetScoreDomainErrorResponse(err)
 	} else {
 		resp = GetResponsePage[score.Score]{
 			StatusCode: 200,
@@ -93,10 +98,7 @@ func (h *ScoreHandler) CreateScores(w http.ResponseWriter, r *http.Request) {
 	scoresToCreate := parseCreateScoreReq(req)
 	err := h.service.CreateScores(ctx, scoresToCreate)
 	if err != nil {
-		json.NewEncoder(w).Encode(ErrorResponse{
-			StatusCode: http.StatusInternalServerError,
-			Message:    err.Error(),
-		})
+		json.NewEncoder(w).Encode(GetScoreDomainErrorResponse(err))
 		return
 	}
 	scoresResponse := ToCreateUpdateScoreResponse(scoresToCreate)
@@ -132,10 +134,7 @@ func (h *ScoreHandler) UpdateScores(w http.ResponseWriter, r *http.Request) {
 
 	err := h.service.UpdateScores(ctx, scores)
 	if err != nil {
-		json.NewEncoder(w).Encode(ErrorResponse{
-			StatusCode: http.StatusInternalServerError,
-			Message:    err.Error(),
-		})
+		json.NewEncoder(w).Encode(GetScoreDomainErrorResponse(err))
 		return
 	}
 	scoresResponses := ToCreateUpdateScoreResponse(scores)
@@ -152,13 +151,16 @@ func (h *ScoreHandler) DeleteScore(w http.ResponseWriter, r *http.Request) {
 	var resp any
 	scoreId, err := strconv.ParseInt(scoreIdStr, 10, 64)
 	if err != nil {
-		resp = errmap.GetDomainErrorResponse(err)
+		resp = ErrorResponse{
+			StatusCode: http.StatusBadRequest,
+			Message:    "invalid score ID",
+		}
 		json.NewEncoder(w).Encode(resp)
 		return
 	}
 	err = h.service.DeleteScore(ctx, scoreId)
 	if err != nil {
-		resp = errmap.GetDomainErrorResponse(err)
+		resp = GetScoreDomainErrorResponse(err)
 	} else {
 		resp = DeleteResponsePage{
 			StatusCode: http.StatusNoContent,

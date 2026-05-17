@@ -8,7 +8,6 @@ import (
 	"github.com/go-chi/chi"
 	"github.com/go-playground/validator/v10"
 	. "github.com/nevinmanoj/bhavana-backend/api"
-	"github.com/nevinmanoj/bhavana-backend/internal/app/errmap"
 	"github.com/nevinmanoj/bhavana-backend/internal/domain/school"
 	"github.com/nevinmanoj/bhavana-backend/internal/util"
 )
@@ -29,7 +28,7 @@ func (h *SchoolHandler) GetSchools(w http.ResponseWriter, r *http.Request) {
 	var resp any
 	schools, err := h.service.GetAllSchools(ctx)
 	if err != nil {
-		resp = errmap.GetDomainErrorResponse(err)
+		resp = GetSchoolDomainErrorResponse(err)
 	} else {
 		schoolResponses := make([]SchoolResponse, len(schools))
 		for i, s := range schools {
@@ -50,13 +49,16 @@ func (h *SchoolHandler) GetSchool(w http.ResponseWriter, r *http.Request) {
 	schoolIdStr := chi.URLParam(r, "schoolId")
 	schoolId, err := strconv.ParseInt(schoolIdStr, 10, 64)
 	if err != nil {
-		resp = errmap.GetDomainErrorResponse(err)
+		resp = ErrorResponse{
+			StatusCode: http.StatusBadRequest,
+			Message:    "Invalid school ID in URL parameter",
+		}
 		json.NewEncoder(w).Encode(resp)
 		return
 	}
 	school, err := h.service.GetSchoolByID(ctx, schoolId)
 	if err != nil {
-		resp = errmap.GetDomainErrorResponse(err)
+		resp = GetSchoolDomainErrorResponse(err)
 	} else {
 		resp = GetResponsePage[SchoolResponse]{
 			StatusCode: 200,
@@ -160,10 +162,7 @@ func (h *SchoolHandler) UpdateSchool(w http.ResponseWriter, r *http.Request) {
 
 	err = h.service.UpdateSchool(ctx, &schoolToUpdate)
 	if err != nil {
-		json.NewEncoder(w).Encode(ErrorResponse{
-			StatusCode: http.StatusInternalServerError,
-			Message:    err.Error(),
-		})
+		json.NewEncoder(w).Encode(GetSchoolDomainErrorResponse(err))
 		return
 	}
 	schoolResponse := ToSchoolResponse(&schoolToUpdate)
@@ -180,13 +179,16 @@ func (h *SchoolHandler) DeleteSchool(w http.ResponseWriter, r *http.Request) {
 	var resp any
 	schoolId, err := strconv.ParseInt(schoolIdStr, 10, 64)
 	if err != nil {
-		resp = errmap.GetDomainErrorResponse(err)
+		resp = ErrorResponse{
+			StatusCode: http.StatusBadRequest,
+			Message:    "Invalid school ID in URL parameter",
+		}
 		json.NewEncoder(w).Encode(resp)
 		return
 	}
 	err = h.service.DeleteSchool(ctx, schoolId)
 	if err != nil {
-		resp = errmap.GetDomainErrorResponse(err)
+		resp = GetSchoolDomainErrorResponse(err)
 	} else {
 		resp = DeleteResponsePage{
 			StatusCode: http.StatusNoContent,
@@ -210,7 +212,7 @@ func (h *SchoolHandler) GetStudents(w http.ResponseWriter, r *http.Request) {
 	}
 	students, err := h.service.GetAllStudents(ctx, filter)
 	if err != nil {
-		resp = errmap.GetDomainErrorResponse(err)
+		resp = GetSchoolDomainErrorResponse(err)
 	} else {
 		studentResponses := make([]StudentResponse, len(students))
 		for i, s := range students {
@@ -231,7 +233,10 @@ func (h *SchoolHandler) GetStudentsBySchoolID(w http.ResponseWriter, r *http.Req
 	schoolIdStr := chi.URLParam(r, "schoolId")
 	schoolId, err := strconv.ParseInt(schoolIdStr, 10, 64)
 	if err != nil {
-		resp = errmap.GetDomainErrorResponse(err)
+		resp = ErrorResponse{
+			StatusCode: http.StatusBadRequest,
+			Message:    "Invalid school ID in URL parameter",
+		}
 		json.NewEncoder(w).Encode(resp)
 		return
 	}
@@ -244,7 +249,7 @@ func (h *SchoolHandler) GetStudentsBySchoolID(w http.ResponseWriter, r *http.Req
 	}
 	students, err := h.service.GetAllStudents(ctx, filter)
 	if err != nil {
-		resp = errmap.GetDomainErrorResponse(err)
+		resp = GetSchoolDomainErrorResponse(err)
 	} else {
 		studentResponses := make([]StudentResponse, len(students))
 		for i, s := range students {
@@ -283,7 +288,10 @@ func (h *SchoolHandler) CreateStudent(w http.ResponseWriter, r *http.Request) {
 	schoolIdStr := chi.URLParam(r, "schoolId")
 	schoolId, err := strconv.ParseInt(schoolIdStr, 10, 64)
 	if err != nil {
-		resp = errmap.GetDomainErrorResponse(err)
+		resp = ErrorResponse{
+			StatusCode: http.StatusBadRequest,
+			Message:    "Invalid school ID in URL parameter",
+		}
 		json.NewEncoder(w).Encode(resp)
 		return
 	}
@@ -295,10 +303,7 @@ func (h *SchoolHandler) CreateStudent(w http.ResponseWriter, r *http.Request) {
 	}
 	err = h.service.CreateStudent(ctx, &studentToCreate)
 	if err != nil {
-		json.NewEncoder(w).Encode(ErrorResponse{
-			StatusCode: http.StatusInternalServerError,
-			Message:    err.Error(),
-		})
+		json.NewEncoder(w).Encode(GetSchoolDomainErrorResponse(err))
 		return
 	}
 	studentResponse := ToStudentResponse(&studentToCreate)
@@ -363,10 +368,7 @@ func (h *SchoolHandler) UpdateStudent(w http.ResponseWriter, r *http.Request) {
 
 	err = h.service.UpdateStudent(ctx, &studentToUpdate)
 	if err != nil {
-		json.NewEncoder(w).Encode(ErrorResponse{
-			StatusCode: http.StatusInternalServerError,
-			Message:    err.Error(),
-		})
+		json.NewEncoder(w).Encode(GetSchoolDomainErrorResponse(err))
 		return
 	}
 	studentResponse := ToStudentResponse(&studentToUpdate)
@@ -383,17 +385,20 @@ func (h *SchoolHandler) DeleteStudent(w http.ResponseWriter, r *http.Request) {
 	var resp any
 	studentId, err := strconv.ParseInt(studentIdStr, 10, 64)
 	if err != nil {
-		resp = errmap.GetDomainErrorResponse(err)
+		resp = ErrorResponse{
+			StatusCode: http.StatusBadRequest,
+			Message:    "Invalid student ID in URL parameter",
+		}
 		json.NewEncoder(w).Encode(resp)
 		return
 	}
 	err = h.service.DeleteStudent(ctx, studentId)
 	if err != nil {
-		resp = errmap.GetDomainErrorResponse(err)
+		resp = GetSchoolDomainErrorResponse(err)
 	} else {
 		resp = DeleteResponsePage{
 			StatusCode: http.StatusNoContent,
-			Message:    "School deleted successfully",
+			Message:    "Student deleted successfully",
 		}
 	}
 

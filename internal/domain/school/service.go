@@ -69,6 +69,13 @@ func (s *schoolService) CreateStudent(ctx context.Context, student *Student) err
 	if !access {
 		return ErrUnauthorized
 	}
+	exists, err := s.repo.SchoolExists(ctx, s.db, student.SchoolID)
+	if err != nil {
+		return err
+	}
+	if !exists {
+		return ErrSchoolNotFound
+	}
 	return s.repo.CreateStudent(ctx, s.db, student)
 }
 func (s *schoolService) DeleteStudent(ctx context.Context, id int64) error {

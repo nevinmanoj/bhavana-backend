@@ -21,6 +21,15 @@ func NewSchoolReadRepository() school.SchoolReadRepository {
 }
 
 // schools
+func (s *schoolRepository) SchoolExists(ctx context.Context, db sqlx.ExtContext, schoolID int64) (bool, error) {
+	query := `SELECT EXISTS (SELECT 1 FROM schools WHERE id = $1)`
+	var exists bool
+	err := sqlx.GetContext(ctx, db, &exists, query, schoolID)
+	if err != nil {
+		return false, err
+	}
+	return exists, nil
+}
 func (s *schoolRepository) CreateSchool(ctx context.Context, db sqlx.ExtContext, schoolToCreate *school.School) error {
 	query := `
 		INSERT INTO schools (
@@ -42,7 +51,7 @@ func (s *schoolRepository) CreateSchool(ctx context.Context, db sqlx.ExtContext,
 
 	rows, err := sqlx.NamedQueryContext(ctx, db, query, schoolToCreate)
 	if err != nil {
-		return err
+		return errorMapper(err)
 	}
 	defer rows.Close()
 
@@ -58,8 +67,15 @@ func (s *schoolRepository) CreateSchool(ctx context.Context, db sqlx.ExtContext,
 }
 func (s *schoolRepository) DeleteSchool(ctx context.Context, db sqlx.ExtContext, id int64) error {
 	query := `DELETE FROM schools WHERE id = $1`
-	_, err := db.ExecContext(ctx, query, id)
-	return err
+	result, err := db.ExecContext(ctx, query, id)
+	if err != nil {
+		return err
+	}
+	rows, _ := result.RowsAffected()
+	if rows == 0 {
+		return school.ErrSchoolNotFound
+	}
+	return nil
 }
 func (s *schoolRepository) GetAllSchools(ctx context.Context, db sqlx.ExtContext) ([]school.School, error) {
 	schools := []school.School{}
@@ -122,12 +138,12 @@ func (s *schoolRepository) UpdateSchool(ctx context.Context, db sqlx.ExtContext,
 	`
 	result, err := sqlx.NamedExecContext(ctx, db, query, schoolToUpdate)
 	if err != nil {
-		return err
+		return errorMapper(err)
 	}
 
 	rows, err := result.RowsAffected()
 	if err != nil {
-		return err
+		return school.ErrInternal
 	}
 	if rows == 0 {
 		return school.ErrSchoolNotFound
@@ -144,7 +160,7 @@ func (s *schoolRepository) UpdateStudent(ctx context.Context, db sqlx.ExtContext
 	`
 	result, err := sqlx.NamedExecContext(ctx, db, query, studentToUpdate)
 	if err != nil {
-		return err
+		return errorMapper(err)
 	}
 
 	rows, err := result.RowsAffected()
@@ -187,9 +203,16 @@ func (s *schoolRepository) CreateStudent(ctx context.Context, db sqlx.ExtContext
 	return sql.ErrNoRows
 }
 func (s *schoolRepository) DeleteStudent(ctx context.Context, db sqlx.ExtContext, id int64) error {
-	query := `DELETE FROM students WHERE id = $1`
-	_, err := db.ExecContext(ctx, query, id)
-	return err
+
+	result, err := db.ExecContext(ctx, "DELETE FROM students WHERE id = $1", id)
+	if err != nil {
+		return err
+	}
+	rows, _ := result.RowsAffected()
+	if rows == 0 {
+		return school.ErrStudentNotFound
+	}
+	return nil
 }
 func (s *schoolRepository) GetAllStudents(ctx context.Context, db sqlx.ExtContext, filter school.StudentFilter) ([]school.Student, error) {
 	students := []school.Student{}
