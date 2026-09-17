@@ -93,7 +93,7 @@ func Start() error {
 			if origin == "http://localhost:8081" {
 				return true
 			}
-			if origin == "https://jolly-smoke-0077dfc00.7.azurestaticapps.net" {
+			if origin == "gray-stone-0cf1a6200.2.azurestaticapps.net" {
 				return true
 			}
 			return false
