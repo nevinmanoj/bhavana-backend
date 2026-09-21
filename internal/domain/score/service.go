@@ -132,12 +132,17 @@ func (s *scoreService) GetEventScoresDetailed(ctx context.Context, eventID int64
 	}, nil
 }
 func (s *scoreService) CreateScores(ctx context.Context, scoresToCreate []Score) error {
+	judgeID := ctx.Value(middleware.ContextUserID).(int64)
+
 	tx, err := s.db.BeginTxx(ctx, nil)
 	if err != nil {
 		return fmt.Errorf("error starting transaction: %w", err)
 	}
 	defer tx.Rollback()
 	for _, scoreToCreate := range scoresToCreate {
+		// judge_id always comes from the authenticated caller, never the request body,
+		// so a judge cannot submit scores attributed to another judge.
+		scoreToCreate.JudgeID = judgeID
 		err := s.repo.CreateScore(ctx, tx, &scoreToCreate)
 		if err != nil {
 			return err
@@ -167,5 +172,12 @@ func (s *scoreService) UpdateScores(ctx context.Context, scoresToUpdate []Score)
 	return tx.Commit()
 }
 func (s *scoreService) DeleteScore(ctx context.Context, scoreID int64) error {
+	access, err := s.accessService.CanModifyScore(ctx, scoreID)
+	if err != nil {
+		return err
+	}
+	if !access {
+		return ErrUnauthorized
+	}
 	return s.repo.DeleteScore(ctx, s.db, scoreID)
 }

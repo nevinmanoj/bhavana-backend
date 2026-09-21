@@ -124,6 +124,7 @@ func Start() error {
 		// protected
 		router.Group(func(groupRouter chi.Router) {
 			groupRouter.Use(authMiddleware, middleware.InjectScope)
+			groupRouter.Get("/me", userHandler.GetMe)
 			groupRouter.With(middleware.RequirePermission(rbac.PermViewUser)).Get("/", userHandler.GetUsers)
 			groupRouter.With(middleware.RequirePermission(rbac.PermViewUser)).Get("/{userId}", userHandler.GetUser)
 		})
@@ -136,7 +137,7 @@ func Start() error {
 		router.With(middleware.RequirePermission(rbac.PermViewEvent)).Get("/{eventId}", eventHandler.GetEvent)
 		router.With(middleware.RequirePermission(rbac.PermCreateEvent)).Post("/", eventHandler.CreateEvent)
 		router.With(middleware.RequirePermission(rbac.PermUpdateEvent)).Put("/{eventId}", eventHandler.UpdateEvent)
-		router.With(middleware.RequirePermission(rbac.PermUpdateEvent)).Put("/{eventId}/status", eventHandler.UpdateEventStatus)
+		router.With(middleware.RequirePermission(rbac.PermUpdateEventStatus)).Put("/{eventId}/status", eventHandler.UpdateEventStatus)
 		router.With(middleware.RequirePermission(rbac.PermDeleteEvent)).Delete("/{eventId}", eventHandler.DeleteEvent)
 		router.With(middleware.RequirePermission(rbac.PermViewScore)).Get("/{eventId}/scores", scoreHandler.GetScoresByEventID)
 	})

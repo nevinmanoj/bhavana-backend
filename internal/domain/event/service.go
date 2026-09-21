@@ -32,6 +32,8 @@ func (s *eventService) GetEventByID(ctx context.Context, id int64) (*EventDetail
 	if err != nil {
 		return nil, fmt.Errorf("error starting transaction: %w", err)
 	}
+	defer tx.Rollback()
+
 	event, err := s.repo.GetEventByID(ctx, tx, id)
 	if err != nil {
 		return nil, err

@@ -176,7 +176,8 @@ func parseCreateScoreReq(req CreateScoreRequest) []score.Score {
 	scores := make([]score.Score, len(req.Scores))
 	for i, scoreReq := range req.Scores {
 		scores[i] = score.Score{
-			JudgeID:    req.JudgeID,
+			// JudgeID is deliberately left unset here; the domain service fills it
+			// in from the authenticated caller (see ScoreService.CreateScores).
 			TeamID:     req.TeamID,
 			CriteriaID: scoreReq.CriteriaID,
 			Score:      scoreReq.Score,

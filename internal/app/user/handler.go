@@ -9,6 +9,7 @@ import (
 	"github.com/go-playground/validator/v10"
 	. "github.com/nevinmanoj/bhavana-backend/api"
 	user "github.com/nevinmanoj/bhavana-backend/internal/domain/user"
+	"github.com/nevinmanoj/bhavana-backend/internal/middleware"
 	"github.com/nevinmanoj/bhavana-backend/internal/rbac"
 )
 
@@ -72,6 +73,27 @@ func (h *UserHandler) GetUser(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	json.NewEncoder(w).Encode(resp)
+}
+
+// GetMe returns the profile of the currently authenticated user, derived from
+// the JWT rather than anything the client claims. The UI uses this to validate
+// the session it persists to localStorage instead of trusting that blindly.
+func (h *UserHandler) GetMe(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	userID := ctx.Value(middleware.ContextUserID).(int64)
+	w.Header().Set("Content-Type", "application/json")
+	var resp any
+	result, err := h.service.GetUserByID(ctx, userID)
+	if err != nil {
+		resp = GetUserDomainErrorResponse(err)
+	} else {
+		resp = GetResponsePage[UserResponse]{
+			StatusCode: 200,
+			Message:    "Current user fetched successfully",
+			Data:       ToUserResponse(result),
+		}
+	}
 	json.NewEncoder(w).Encode(resp)
 }
 

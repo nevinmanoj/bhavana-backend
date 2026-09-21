@@ -171,7 +171,7 @@ func (s *teamService) UpdateTeam(ctx context.Context, teamToUpdate *TeamFull) er
 	return tx.Commit()
 }
 func (s *teamService) DeleteTeam(ctx context.Context, teamID int64) error {
-	access, err := s.accessService.CanCreateTeam(ctx, teamID)
+	access, err := s.accessService.CanModifyTeam(ctx, teamID)
 	if err != nil {
 		return ErrUnauthorized
 	}

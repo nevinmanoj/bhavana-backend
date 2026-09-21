@@ -7,13 +7,15 @@ import (
 )
 
 type CreateScoreRequest struct {
-	TeamID  int64 `json:"team_id" validate:"required"`
-	JudgeID int64 `json:"judge_id"`
-	Scores  []ScoreRequest
+	TeamID int64 `json:"team_id" validate:"required"`
+	// JudgeID is accepted for backward wire-compatibility but ignored: the domain
+	// service always attributes the score to the authenticated caller.
+	JudgeID int64          `json:"judge_id"`
+	Scores  []ScoreRequest `json:"scores" validate:"required,dive"`
 }
 type ScoreRequest struct {
 	CriteriaID int64   `json:"criteria_id" validate:"required"`
-	Score      float64 `json:"score" validate:"required"`
+	Score      float64 `json:"score" validate:"min=0"`
 }
 type UpdateScoresRequest struct {
 	Scores []UpdateScoreRequest `json:"scores" validate:"required,dive"`

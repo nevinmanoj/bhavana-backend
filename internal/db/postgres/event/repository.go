@@ -47,14 +47,22 @@ func (r *eventRepository) GetAllEvents(ctx context.Context, db sqlx.ExtContext, 
 	return events, nil
 }
 func (r *eventRepository) GetEventByID(ctx context.Context, db sqlx.ExtContext, id int64) (*event.Event, error) {
+	scope := ctx.Value(middleware.ContextScope).(rbac.Scope)
+	role := ctx.Value(middleware.ContextUserRole).(rbac.UserRole)
 	events := []event.Event{}
-	err := sqlx.SelectContext(
-		ctx, db,
-		&events,
-		`SELECT * FROM events
-		 WHERE id = $1`,
-		id,
-	)
+
+	query := `SELECT e.* FROM events e WHERE e.id = $1`
+	args := []any{id}
+
+	if scope.UserID != nil && role == rbac.UserRoleJudge {
+		// judges can only fetch events they are assigned to judge, matching the scoping in GetAllEvents.
+		query = `SELECT e.* FROM events e
+			JOIN event_judges ej ON ej.event_id = e.id
+			WHERE e.id = $1 AND ej.user_id = $2`
+		args = append(args, *scope.UserID)
+	}
+
+	err := sqlx.SelectContext(ctx, db, &events, query, args...)
 
 	if err != nil {
 		return nil, event.ErrInternal
@@ -115,7 +123,8 @@ func (r *eventRepository) UpdateEvent(ctx context.Context, db sqlx.ExtContext, e
 			min_team_size = :min_team_size,
 			max_team_size = :max_team_size,
 			max_teams_per_school = :max_teams_per_school,
-			category = :category
+			category = :category,
+			status = :status
 		WHERE id = :id
 	`
 	result, err := sqlx.NamedExecContext(ctx, db, query, eventToUpdate)
