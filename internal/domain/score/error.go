@@ -13,6 +13,6 @@ var (
 	ErrEventNotOpen     = errors.New("evt is not openen for scoring")
 	ErrScoreOutOfRange  = errors.New("score is out of allowed range")
 	ErrNotAJudge        = errors.New("user is not a judge for this event")
-	ErrCriteriaMismatch = errors.New("team does not belong to the same event as criteria")
-	ErrAlreadyExists    = errors.New("score already exists for this team, judge and criteria")
+	ErrCriteriaMismatch = errors.New("entry does not belong to the same event as criteria")
+	ErrAlreadyExists    = errors.New("score already exists for this entry, judge and criteria")
 )

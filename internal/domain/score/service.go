@@ -44,12 +44,12 @@ func (s *scoreService) GetEventScoresDetailed(ctx context.Context, eventID int64
 	}
 
 	criteriaOrder := []int64{}
-	teamOrder := []int64{}
+	entryOrder := []int64{}
 	seenCriteria := map[int64]bool{}
-	seenTeams := map[int64]bool{}
+	seenEntries := map[int64]bool{}
 
 	criteriaMap := map[int64]CriteriaSummary{}
-	teamMap := map[int64]*TeamScore{}
+	entryMap := map[int64]*EntryScore{}
 
 	for _, row := range rows {
 		// criteria
@@ -63,25 +63,25 @@ func (s *scoreService) GetEventScoresDetailed(ctx context.Context, eventID int64
 			}
 		}
 
-		// teams
-		if !seenTeams[row.TeamID] {
-			seenTeams[row.TeamID] = true
-			teamOrder = append(teamOrder, row.TeamID)
+		// entries
+		if !seenEntries[row.EntryID] {
+			seenEntries[row.EntryID] = true
+			entryOrder = append(entryOrder, row.EntryID)
 
-			t := &TeamScore{
-				ID:          row.TeamID,
+			t := &EntryScore{
+				ID:          row.EntryID,
 				ChestNumber: row.ChestNumber,
 				Scores:      map[int64]CriteriaScore{},
 			}
 			if !isJudge && row.SchoolName != nil {
 				t.School = *row.SchoolName
 			}
-			teamMap[row.TeamID] = t
+			entryMap[row.EntryID] = t
 		}
 
 		// scores
 		if row.Score != nil && row.JudgeID != nil {
-			t := teamMap[row.TeamID]
+			t := entryMap[row.EntryID]
 			cs := t.Scores[row.CriteriaID]
 			cs.Judges = append(cs.Judges, JudgeScore{
 				ScoreID:   *row.ScoreID,
@@ -94,8 +94,8 @@ func (s *scoreService) GetEventScoresDetailed(ctx context.Context, eventID int64
 	}
 
 	// compute averages and totals
-	for _, t := range teamMap {
-		var teamTotal float64
+	for _, t := range entryMap {
+		var entryTotal float64
 		for id, cs := range t.Scores {
 			if len(cs.Judges) == 0 {
 				continue
@@ -106,11 +106,11 @@ func (s *scoreService) GetEventScoresDetailed(ctx context.Context, eventID int64
 			}
 			cs.Avg = sum / float64(len(cs.Judges))
 			t.Scores[id] = cs
-			teamTotal += cs.Avg
+			entryTotal += cs.Avg
 		}
-		t.Total = teamTotal
+		t.Total = entryTotal
 		if !isJudge {
-			t.TeamTotal = teamTotal
+			t.EntryTotal = entryTotal
 		}
 	}
 
@@ -120,15 +120,15 @@ func (s *scoreService) GetEventScoresDetailed(ctx context.Context, eventID int64
 		criteriaSlice = append(criteriaSlice, criteriaMap[id])
 	}
 
-	teamSlice := make([]*TeamScore, 0, len(teamOrder))
-	for _, id := range teamOrder {
-		teamSlice = append(teamSlice, teamMap[id])
+	entrySlice := make([]*EntryScore, 0, len(entryOrder))
+	for _, id := range entryOrder {
+		entrySlice = append(entrySlice, entryMap[id])
 	}
 
 	return &EventScoresDetailed{
 		EventID:  eventID,
 		Criteria: criteriaSlice,
-		Teams:    teamSlice,
+		Entries:  entrySlice,
 	}, nil
 }
 func (s *scoreService) CreateScores(ctx context.Context, scoresToCreate []Score) error {

@@ -54,7 +54,7 @@ func (r *scoreRepository) GetScoresByEventID(ctx context.Context, db sqlx.ExtCon
 
 	query := `
 		SELECT
-			t.id            AS team_id,
+			t.id            AS entry_id,
 			t.chest_number,
 			ec.id           AS criteria_id,
 			ec.title        AS criteria_title,
@@ -70,9 +70,9 @@ func (r *scoreRepository) GetScoresByEventID(ctx context.Context, db sqlx.ExtCon
 	}
 
 	query += `
-		FROM teams t
+		FROM entries t
 		JOIN event_criteria ec   ON ec.event_id = t.event_id
-		LEFT JOIN scores s       ON s.team_id = t.id
+		LEFT JOIN scores s       ON s.entry_id = t.id
 								AND s.criteria_id = ec.id
 		LEFT JOIN users u        ON u.id = s.judge_id
 	`
@@ -125,13 +125,13 @@ func (s *scoreRepository) GetScoreByID(ctx context.Context, db sqlx.ExtContext, 
 func (e *scoreRepository) CreateScore(ctx context.Context, db sqlx.ExtContext, scoreToCreate *score.Score) error {
 	query := `
 		INSERT INTO scores (
-			team_id,
+			entry_id,
 			judge_id,
 			criteria_id,
 			score
 		)
 		VALUES (
-			:team_id,
+			:entry_id,
 			:judge_id,
 			:criteria_id,
 			:score

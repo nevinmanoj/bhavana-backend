@@ -101,13 +101,13 @@ func (h *EventHandler) CreateEvent(w http.ResponseWriter, r *http.Request) {
 
 	eventToCreate := event.EventDetails{
 		Event: event.Event{
-			Title:             req.Title,
-			Description:       req.Description,
-			MinTeamSize:       req.MinTeamSize,
-			MaxTeamSize:       req.MaxTeamSize,
-			MaxTeamsPerSchool: req.MaxTeamsPerSchool,
-			Status:            req.Status,
-			Category:          req.Category,
+			Title:               req.Title,
+			Description:         req.Description,
+			MinMembers:          req.MinMembers,
+			MaxMembers:          req.MaxMembers,
+			MaxEntriesPerSchool: req.MaxEntriesPerSchool,
+			Status:              req.Status,
+			Category:            req.Category,
 		},
 		Judges:    paresejudgeReqs(req.Judges),
 		Criteria:  parseCriteriaReqs(req.Criteria),
@@ -150,14 +150,14 @@ func (h *EventHandler) UpdateEvent(w http.ResponseWriter, r *http.Request) {
 
 	eventToUpdate := event.EventDetails{
 		Event: event.Event{
-			ID:                req.ID,
-			Title:             req.Title,
-			Description:       req.Description,
-			MinTeamSize:       req.MinTeamSize,
-			MaxTeamSize:       req.MaxTeamSize,
-			MaxTeamsPerSchool: req.MaxTeamsPerSchool,
-			Status:            req.Status,
-			Category:          req.Category,
+			ID:                  req.ID,
+			Title:               req.Title,
+			Description:         req.Description,
+			MinMembers:          req.MinMembers,
+			MaxMembers:          req.MaxMembers,
+			MaxEntriesPerSchool: req.MaxEntriesPerSchool,
+			Status:              req.Status,
+			Category:            req.Category,
 		},
 		Judges:    paresejudgeReqs(req.Judges),
 		Criteria:  parseCriteriaReqs(req.Criteria),

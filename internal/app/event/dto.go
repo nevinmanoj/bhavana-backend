@@ -7,12 +7,12 @@ import (
 
 // requests
 type CreateEventRequest struct {
-	Title             string                  `json:"title" validate:"required"`
-	Description       string                  `json:"description"`
-	MinTeamSize       int64                   `json:"min_team_size" validate:"required"`
-	MaxTeamSize       int64                   `json:"max_team_size" validate:"required"`
-	MaxTeamsPerSchool int64                   `json:"max_teams_per_school" validate:"required"`
-	Status            core.EventStatus        `json:"status" validate:"required,event_status"`
+	Title               string                `json:"title" validate:"required"`
+	Description         string                `json:"description"`
+	MinMembers          int64                 `json:"min_members" validate:"required"`
+	MaxMembers          int64                 `json:"max_members" validate:"required"`
+	MaxEntriesPerSchool int64                 `json:"max_entries_per_school" validate:"required"`
+	Status              core.EventStatus      `json:"status" validate:"required,event_status"`
 	Category          core.Category           `json:"category" validate:"required,category"`
 	Judges            []EventJudgeRequest     `json:"judges"`
 	Criteria          []EventCriteriaRequest  `json:"criteria"`
@@ -43,15 +43,15 @@ type EventStandingRequest struct {
 
 // responses
 type EventResponse struct {
-	ID                int64            `json:"id"`
-	Title             string           `json:"title"`
-	Description       string           `json:"description"`
-	MinTeamSize       int64            `json:"min_team_size"`
-	MaxTeamSize       int64            `json:"max_team_size"`
-	MaxTeamsPerSchool int64            `json:"max_teams_per_school"`
-	Status            core.EventStatus `json:"status"`
-	Category          core.Category    `json:"category"`
-	CreatedAt         string           `json:"created_at"`
+	ID                  int64            `json:"id"`
+	Title               string           `json:"title"`
+	Description         string           `json:"description"`
+	MinMembers          int64            `json:"min_members"`
+	MaxMembers          int64            `json:"max_members"`
+	MaxEntriesPerSchool int64            `json:"max_entries_per_school"`
+	Status              core.EventStatus `json:"status"`
+	Category            core.Category    `json:"category"`
+	CreatedAt           string           `json:"created_at"`
 }
 type EventDetailsResponse struct {
 	EventResponse
@@ -108,14 +108,14 @@ func ToEventDetailsResponse(details *event.EventDetails) EventDetailsResponse {
 
 func ToEventResponse(e *event.Event) EventResponse {
 	return EventResponse{
-		ID:                e.ID,
-		Title:             e.Title,
-		Description:       e.Description,
-		MinTeamSize:       e.MinTeamSize,
-		MaxTeamSize:       e.MaxTeamSize,
-		MaxTeamsPerSchool: e.MaxTeamsPerSchool,
-		Status:            e.Status,
-		Category:          e.Category,
-		CreatedAt:         e.CreatedAt.Format("2006-01-02 15:04:05"),
+		ID:                  e.ID,
+		Title:               e.Title,
+		Description:         e.Description,
+		MinMembers:          e.MinMembers,
+		MaxMembers:          e.MaxMembers,
+		MaxEntriesPerSchool: e.MaxEntriesPerSchool,
+		Status:              e.Status,
+		Category:            e.Category,
+		CreatedAt:           e.CreatedAt.Format("2006-01-02 15:04:05"),
 	}
 }

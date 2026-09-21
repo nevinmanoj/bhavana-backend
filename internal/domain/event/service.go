@@ -136,9 +136,9 @@ func (s *eventService) UpdateEvent(ctx context.Context, event *EventDetails) err
 		if existingEvent.Title != event.Event.Title ||
 			existingEvent.Description != event.Event.Description ||
 			existingEvent.Category != event.Event.Category ||
-			existingEvent.MinTeamSize != event.Event.MinTeamSize ||
-			existingEvent.MaxTeamSize != event.Event.MaxTeamSize ||
-			existingEvent.MaxTeamsPerSchool != event.Event.MaxTeamsPerSchool {
+			existingEvent.MinMembers != event.Event.MinMembers ||
+			existingEvent.MaxMembers != event.Event.MaxMembers ||
+			existingEvent.MaxEntriesPerSchool != event.Event.MaxEntriesPerSchool {
 			return ErrEventNotDraft
 		}
 	}

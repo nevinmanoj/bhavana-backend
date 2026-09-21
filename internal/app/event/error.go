@@ -38,10 +38,10 @@ func GetEventDomainErrorResponse(err error) ErrorResponse {
 			StatusCode: 400,
 			Message:    event.ErrEventNotDraft.Error(),
 		}
-	case event.ErrinvalidTeamSize:
+	case event.ErrInvalidMemberRange:
 		return ErrorResponse{
 			StatusCode: 400,
-			Message:    event.ErrinvalidTeamSize.Error(),
+			Message:    event.ErrInvalidMemberRange.Error(),
 		}
 	case event.ErrInvalidJudge:
 		return ErrorResponse{

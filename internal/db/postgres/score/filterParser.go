@@ -12,8 +12,8 @@ func buildScoreQuery(baseQuery string, args []any, f score.ScoreFilter) (string,
 		conditions []string
 	)
 
-	if f.TeamID != nil {
-		conditions = append(conditions, "s.team_id = ?")
+	if f.EntryID != nil {
+		conditions = append(conditions, "s.entry_id = ?")
 		args = append(args, *f.EventID)
 	}
 	if f.EventID != nil {

@@ -12,8 +12,8 @@ type AccessService interface {
 	CanModifyStudent(ctx context.Context, schoolID int64) (bool, error)
 	CanModifyScore(ctx context.Context, scoreID int64) (bool, error)
 	CanCreateStudent(ctx context.Context, schoolID int64) (bool, error)
-	CanCreateTeam(ctx context.Context, schoolID int64) (bool, error)
-	CanModifyTeam(ctx context.Context, teamID int64) (bool, error)
+	CanCreateEntry(ctx context.Context, schoolID int64) (bool, error)
+	CanModifyEntry(ctx context.Context, entryID int64) (bool, error)
 }
 
 type accessService struct {
@@ -51,8 +51,8 @@ func (s *accessService) CanModifyStudent(ctx context.Context, studentID int64) (
 	return canAccess, nil
 }
 
-// teams
-func (s *accessService) CanCreateTeam(ctx context.Context, schoolID int64) (bool, error) {
+// entries
+func (s *accessService) CanCreateEntry(ctx context.Context, schoolID int64) (bool, error) {
 	userID := ctx.Value(middleware.ContextUserID).(int64)
 	role := ctx.Value(middleware.ContextUserRole).(rbac.UserRole)
 	if role == rbac.UserRoleAdmin {
@@ -64,13 +64,13 @@ func (s *accessService) CanCreateTeam(ctx context.Context, schoolID int64) (bool
 	}
 	return canAccess, nil
 }
-func (s *accessService) CanModifyTeam(ctx context.Context, teamID int64) (bool, error) {
+func (s *accessService) CanModifyEntry(ctx context.Context, entryID int64) (bool, error) {
 	userID := ctx.Value(middleware.ContextUserID).(int64)
 	role := ctx.Value(middleware.ContextUserRole).(rbac.UserRole)
 	if role == rbac.UserRoleAdmin {
 		return true, nil
 	}
-	canAccess, err := s.repo.HasTeamAccess(ctx, s.db, teamID, userID)
+	canAccess, err := s.repo.HasEntryAccess(ctx, s.db, entryID, userID)
 	if err != nil {
 		return false, err
 	}

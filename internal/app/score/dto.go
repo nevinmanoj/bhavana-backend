@@ -7,7 +7,7 @@ import (
 )
 
 type CreateScoreRequest struct {
-	TeamID int64 `json:"team_id" validate:"required"`
+	EntryID int64 `json:"entry_id" validate:"required"`
 	// JudgeID is accepted for backward wire-compatibility but ignored: the domain
 	// service always attributes the score to the authenticated caller.
 	JudgeID int64          `json:"judge_id"`
@@ -27,7 +27,7 @@ type UpdateScoreRequest struct {
 
 type ScoreResponse struct {
 	ID         int64     `json:"id"`
-	TeamID     int64     `json:"team_id"`
+	EntryID    int64     `json:"entry_id"`
 	JudgeID    int64     `json:"judge_id"`
 	CriteriaID int64     `json:"criteria_id"`
 	Score      float64   `json:"score"`
@@ -41,7 +41,7 @@ type CreateUpdateScoreResponse struct {
 func ToScoreResponseResponse(sc *score.Score) ScoreResponse {
 	return ScoreResponse{
 		ID:         sc.ID,
-		TeamID:     sc.TeamID,
+		EntryID:    sc.EntryID,
 		JudgeID:    sc.JudgeID,
 		CriteriaID: sc.CriteriaID,
 		Score:      sc.Score,

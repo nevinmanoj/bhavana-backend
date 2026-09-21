@@ -81,9 +81,9 @@ func (r *eventRepository) CreateEvent(ctx context.Context, db sqlx.ExtContext, e
 		INSERT INTO events (
 			title,
 			description,
-			min_team_size,
-			max_team_size,
-			max_teams_per_school,
+			min_members,
+			max_members,
+			max_entries_per_school,
 			status,
 			category,
 			created_at
@@ -91,9 +91,9 @@ func (r *eventRepository) CreateEvent(ctx context.Context, db sqlx.ExtContext, e
 		VALUES (
 			:title,
 			:description,
-			:min_team_size,
-			:max_team_size,
-			:max_teams_per_school,
+			:min_members,
+			:max_members,
+			:max_entries_per_school,
 			:status,
 			:category,
 			:created_at
@@ -120,9 +120,9 @@ func (r *eventRepository) UpdateEvent(ctx context.Context, db sqlx.ExtContext, e
 		UPDATE events
 		SET title = :title,
 			description = :description,
-			min_team_size = :min_team_size,
-			max_team_size = :max_team_size,
-			max_teams_per_school = :max_teams_per_school,
+			min_members = :min_members,
+			max_members = :max_members,
+			max_entries_per_school = :max_entries_per_school,
 			category = :category,
 			status = :status
 		WHERE id = :id

@@ -17,9 +17,9 @@ type Event struct {
 	ID                int64            `db:"id"`
 	Title             string           `db:"title"`
 	Description       string           `db:"description"`
-	MinTeamSize       int64            `db:"min_team_size"`
-	MaxTeamSize       int64            `db:"max_team_size"`
-	MaxTeamsPerSchool int64            `db:"max_teams_per_school"`
+	MinMembers          int64          `db:"min_members"`
+	MaxMembers          int64          `db:"max_members"`
+	MaxEntriesPerSchool int64          `db:"max_entries_per_school"`
 	Status            core.EventStatus `db:"status"`
 	Category          core.Category    `db:"category"`
 	CreatedAt         time.Time        `db:"created_at"`

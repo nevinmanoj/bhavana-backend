@@ -178,7 +178,7 @@ func parseCreateScoreReq(req CreateScoreRequest) []score.Score {
 		scores[i] = score.Score{
 			// JudgeID is deliberately left unset here; the domain service fills it
 			// in from the authenticated caller (see ScoreService.CreateScores).
-			TeamID:     req.TeamID,
+			EntryID:    req.EntryID,
 			CriteriaID: scoreReq.CriteriaID,
 			Score:      scoreReq.Score,
 		}

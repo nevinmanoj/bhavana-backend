@@ -1,13 +1,13 @@
-package team
+package entry
 
 import (
 	"strings"
 
 	"github.com/jmoiron/sqlx"
-	"github.com/nevinmanoj/bhavana-backend/internal/domain/team"
+	"github.com/nevinmanoj/bhavana-backend/internal/domain/entry"
 )
 
-func buildTeamQuery(baseQuery string, conditions []string, args []any, f team.TeamFilter) (string, []any, error) {
+func buildEntryQuery(baseQuery string, conditions []string, args []any, f entry.EntryFilter) (string, []any, error) {
 
 	if f.SchoolID != nil {
 		conditions = append(conditions, "t.school_id = ?")

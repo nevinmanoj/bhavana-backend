@@ -17,25 +17,25 @@ func NewResultReadRepository() result.ResultReadRepository {
 	return &resultRepository{}
 }
 
-// GetTeamTotals aggregates every team's score into a single total: the sum,
+// GetEntryTotals aggregates every entry's score into a single total: the sum,
 // over criteria, of the average score across judges — the same aggregate
 // score.GetEventScoresDetailed already shows in the UI's Scores tab.
-// has_scores distinguishes "no judge ever scored this team" (excluded from
+// has_scores distinguishes "no judge ever scored this entry" (excluded from
 // ranking) from a legitimate total of 0.00.
-func (r *resultRepository) GetTeamTotals(ctx context.Context, db sqlx.ExtContext, eventID int64) ([]result.TeamTotal, error) {
-	totals := []result.TeamTotal{}
+func (r *resultRepository) GetEntryTotals(ctx context.Context, db sqlx.ExtContext, eventID int64) ([]result.EntryTotal, error) {
+	totals := []result.EntryTotal{}
 	query := `
-		SELECT t.id AS team_id, t.school_id, t.chest_number,
+		SELECT t.id AS entry_id, t.school_id, t.chest_number,
 		       COALESCE(SUM(ca.avg_score), 0) AS total_score,
-		       COUNT(ca.team_id) > 0          AS has_scores
-		FROM teams t
+		       COUNT(ca.entry_id) > 0         AS has_scores
+		FROM entries t
 		LEFT JOIN (
-		    SELECT s.team_id, s.criteria_id, AVG(s.score) AS avg_score
+		    SELECT s.entry_id, s.criteria_id, AVG(s.score) AS avg_score
 		    FROM scores s
 		    JOIN event_criteria ec ON ec.id = s.criteria_id
 		    WHERE ec.event_id = $1
-		    GROUP BY s.team_id, s.criteria_id
-		) ca ON ca.team_id = t.id
+		    GROUP BY s.entry_id, s.criteria_id
+		) ca ON ca.entry_id = t.id
 		WHERE t.event_id = $1
 		GROUP BY t.id, t.school_id, t.chest_number
 		ORDER BY has_scores DESC, total_score DESC, t.chest_number ASC
@@ -81,8 +81,8 @@ func (r *resultRepository) HasStandings(ctx context.Context, db sqlx.ExtContext,
 
 func (r *resultRepository) CreateResults(ctx context.Context, db sqlx.ExtContext, results []result.Result) error {
 	query := `
-		INSERT INTO results (event_id, team_id, school_id, position, points, total_score)
-		VALUES (:event_id, :team_id, :school_id, :position, :points, :total_score)
+		INSERT INTO results (event_id, entry_id, school_id, position, points, total_score)
+		VALUES (:event_id, :entry_id, :school_id, :position, :points, :total_score)
 	`
 	_, err := sqlx.NamedExecContext(ctx, db, query, results)
 	if err != nil {
@@ -94,10 +94,10 @@ func (r *resultRepository) CreateResults(ctx context.Context, db sqlx.ExtContext
 func (r *resultRepository) GetResultsByEventID(ctx context.Context, db sqlx.ExtContext, eventID int64) ([]result.EventResult, error) {
 	results := []result.EventResult{}
 	query := `
-		SELECT r.team_id, t.chest_number, r.school_id, sc.name AS school_name,
+		SELECT r.entry_id, t.chest_number, r.school_id, sc.name AS school_name,
 		       r.total_score, r.position, r.points
 		FROM results r
-		JOIN teams t     ON t.id = r.team_id
+		JOIN entries t   ON t.id = r.entry_id
 		JOIN schools sc  ON sc.id = r.school_id
 		WHERE r.event_id = $1
 		ORDER BY r.position ASC NULLS LAST, t.chest_number ASC
@@ -114,11 +114,11 @@ func (r *resultRepository) GetLeaderboard(ctx context.Context, db sqlx.ExtContex
 	query := `
 		SELECT sc.id AS school_id, sc.name AS school_name, sc.address AS school_address,
 		       e.id AS event_id, e.title AS event_name,
-		       r.team_id, t.chest_number, r.position, r.points
+		       r.entry_id, t.chest_number, r.position, r.points
 		FROM results r
 		JOIN events  e  ON e.id  = r.event_id
 		JOIN schools sc ON sc.id = r.school_id
-		JOIN teams   t  ON t.id  = r.team_id
+		JOIN entries t  ON t.id  = r.entry_id
 		WHERE r.points IS NOT NULL
 	`
 	args := []any{}
@@ -135,42 +135,42 @@ func (r *resultRepository) GetLeaderboard(ctx context.Context, db sqlx.ExtContex
 	return rows, nil
 }
 
-// GetUnscoredTeams and GetJudgeGaps power the pre-finalize readiness check.
-func (r *resultRepository) GetUnscoredTeams(ctx context.Context, db sqlx.ExtContext, eventID int64) ([]result.UnscoredTeam, error) {
-	teams := []result.UnscoredTeam{}
+// GetUnscoredEntries and GetJudgeGaps power the pre-finalize readiness check.
+func (r *resultRepository) GetUnscoredEntries(ctx context.Context, db sqlx.ExtContext, eventID int64) ([]result.UnscoredEntry, error) {
+	entries := []result.UnscoredEntry{}
 	query := `
-		SELECT t.id AS team_id, t.chest_number, sc.name AS school_name
-		FROM teams t
+		SELECT t.id AS entry_id, t.chest_number, sc.name AS school_name
+		FROM entries t
 		JOIN schools sc ON sc.id = t.school_id
 		WHERE t.event_id = $1
 		  AND NOT EXISTS (
 		      SELECT 1 FROM scores s
 		      JOIN event_criteria ec ON ec.id = s.criteria_id
-		      WHERE s.team_id = t.id AND ec.event_id = $1
+		      WHERE s.entry_id = t.id AND ec.event_id = $1
 		  )
 		ORDER BY t.chest_number ASC
 	`
-	err := sqlx.SelectContext(ctx, db, &teams, query, eventID)
+	err := sqlx.SelectContext(ctx, db, &entries, query, eventID)
 	if err != nil {
 		return nil, result.ErrInternal
 	}
-	return teams, nil
+	return entries, nil
 }
 
 func (r *resultRepository) GetJudgeGaps(ctx context.Context, db sqlx.ExtContext, eventID int64) ([]result.JudgeGap, error) {
 	gaps := []result.JudgeGap{}
 	query := `
 		SELECT u.id, u.name,
-		       (SELECT COUNT(*) FROM teams WHERE event_id = $1)
+		       (SELECT COUNT(*) FROM entries WHERE event_id = $1)
 		     * (SELECT COUNT(*) FROM event_criteria WHERE event_id = $1)
 		     - COUNT(s.id) AS missing
 		FROM event_judges ej
 		JOIN users u ON u.id = ej.user_id
 		LEFT JOIN scores s ON s.judge_id = ej.user_id
-		    AND s.team_id IN (SELECT id FROM teams WHERE event_id = $1)
+		    AND s.entry_id IN (SELECT id FROM entries WHERE event_id = $1)
 		WHERE ej.event_id = $1
 		GROUP BY u.id, u.name
-		HAVING COUNT(s.id) < (SELECT COUNT(*) FROM teams WHERE event_id = $1)
+		HAVING COUNT(s.id) < (SELECT COUNT(*) FROM entries WHERE event_id = $1)
 		                   * (SELECT COUNT(*) FROM event_criteria WHERE event_id = $1)
 		ORDER BY u.name ASC
 	`
@@ -181,9 +181,9 @@ func (r *resultRepository) GetJudgeGaps(ctx context.Context, db sqlx.ExtContext,
 	return gaps, nil
 }
 
-func (r *resultRepository) GetTotalTeamsCount(ctx context.Context, db sqlx.ExtContext, eventID int64) (int64, error) {
+func (r *resultRepository) GetTotalEntriesCount(ctx context.Context, db sqlx.ExtContext, eventID int64) (int64, error) {
 	var count int64
-	err := sqlx.GetContext(ctx, db, &count, `SELECT COUNT(*) FROM teams WHERE event_id = $1`, eventID)
+	err := sqlx.GetContext(ctx, db, &count, `SELECT COUNT(*) FROM entries WHERE event_id = $1`, eventID)
 	if err != nil {
 		return 0, result.ErrInternal
 	}

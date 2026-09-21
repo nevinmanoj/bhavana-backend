@@ -13,29 +13,29 @@ import (
 	"github.com/nevinmanoj/bhavana-backend/internal/middleware"
 	"github.com/nevinmanoj/bhavana-backend/internal/validation"
 
+	appEntry "github.com/nevinmanoj/bhavana-backend/internal/app/entry"
 	appEvent "github.com/nevinmanoj/bhavana-backend/internal/app/event"
 	appResult "github.com/nevinmanoj/bhavana-backend/internal/app/result"
 	appSchool "github.com/nevinmanoj/bhavana-backend/internal/app/school"
 	appScore "github.com/nevinmanoj/bhavana-backend/internal/app/score"
-	appTeam "github.com/nevinmanoj/bhavana-backend/internal/app/team"
 	appUser "github.com/nevinmanoj/bhavana-backend/internal/app/user"
 
 	"github.com/nevinmanoj/bhavana-backend/internal/rbac"
 
 	repoAccess "github.com/nevinmanoj/bhavana-backend/internal/db/postgres/access"
+	repoEntry "github.com/nevinmanoj/bhavana-backend/internal/db/postgres/entry"
 	repoEvent "github.com/nevinmanoj/bhavana-backend/internal/db/postgres/event"
 	repoResult "github.com/nevinmanoj/bhavana-backend/internal/db/postgres/result"
 	repoSchool "github.com/nevinmanoj/bhavana-backend/internal/db/postgres/school"
 	repoScore "github.com/nevinmanoj/bhavana-backend/internal/db/postgres/score"
-	repoTeam "github.com/nevinmanoj/bhavana-backend/internal/db/postgres/team"
 	repoUser "github.com/nevinmanoj/bhavana-backend/internal/db/postgres/user"
 
 	domainAccess "github.com/nevinmanoj/bhavana-backend/internal/domain/access"
+	domainEntry "github.com/nevinmanoj/bhavana-backend/internal/domain/entry"
 	domainEvent "github.com/nevinmanoj/bhavana-backend/internal/domain/event"
 	domainResult "github.com/nevinmanoj/bhavana-backend/internal/domain/result"
 	domainSchool "github.com/nevinmanoj/bhavana-backend/internal/domain/school"
 	domainScore "github.com/nevinmanoj/bhavana-backend/internal/domain/score"
-	domainTeam "github.com/nevinmanoj/bhavana-backend/internal/domain/team"
 	domainUser "github.com/nevinmanoj/bhavana-backend/internal/domain/user"
 )
 
@@ -68,7 +68,7 @@ func Start() error {
 	eventReadRepo := repoEvent.NewEventReadRepository()
 	schoolWriteRepo := repoSchool.NewSchoolWriteRepository()
 	schoolReadRepo := repoSchool.NewSchoolReadRepository()
-	teamWrietRepo := repoTeam.NewTeamWriteRepository()
+	entryWriteRepo := repoEntry.NewEntryWriteRepository()
 	scoreWriteRepo := repoScore.NewScoreWriteRepository()
 	resultWriteRepo := repoResult.NewResultWriteRepository()
 
@@ -78,14 +78,14 @@ func Start() error {
 	resultService := domainResult.NewResultService(dbConn, resultWriteRepo)
 	eventService := domainEvent.NewEventService(dbConn, eventWriteRepo, userReadRepo, resultService)
 	schoolService := domainSchool.NewSchoolService(dbConn, accessService, schoolWriteRepo)
-	teamService := domainTeam.NewTeamService(dbConn, accessService, teamWrietRepo, eventReadRepo, schoolReadRepo)
+	entryService := domainEntry.NewEntryService(dbConn, accessService, entryWriteRepo, eventReadRepo, schoolReadRepo)
 	scoreService := domainScore.NewScoreService(dbConn, accessService, scoreWriteRepo)
 
 	//Handlers
 	userHandler := appUser.NewUserHandler(userService, validator)
 	eventHandler := appEvent.NewEventHandler(eventService, validator)
 	schoolHandler := appSchool.NewSchoolHandler(schoolService, validator)
-	teamHandler := appTeam.NewTeamHandler(teamService, validator)
+	entryHandler := appEntry.NewEntryHandler(entryService, validator)
 	scoreHandler := appScore.NewSchoolHandler(scoreService, validator)
 	resultHandler := appResult.NewResultHandler(resultService, validator)
 
@@ -173,19 +173,19 @@ func Start() error {
 		router.With(middleware.RequirePermission(rbac.PermViewStudent)).Get("/", schoolHandler.GetStudents)
 	})
 
-	// Teams routes
-	r.Route("/teams", func(router chi.Router) {
+	// Entries routes
+	r.Route("/entries", func(router chi.Router) {
 		router.Use(authMiddleware, middleware.InjectScope)
-		router.With(middleware.RequirePermission(rbac.PermViewTeam)).Get("/", teamHandler.GetTeams)
-		router.With(middleware.RequirePermission(rbac.PermViewTeam)).Get("/{teamId}", teamHandler.GetTeam)
-		router.With(middleware.RequirePermission(rbac.PermCreateTeam)).Post("/", teamHandler.CreateTeam)
-		router.With(middleware.RequirePermission(rbac.PermUpdateTeam)).Put("/{teamId}", teamHandler.UpdateTeam)
-		router.With(middleware.RequirePermission(rbac.PermDeleteTeam)).Delete("/{teamId}", teamHandler.DeleteTeam)
+		router.With(middleware.RequirePermission(rbac.PermViewEntry)).Get("/", entryHandler.GetEntries)
+		router.With(middleware.RequirePermission(rbac.PermViewEntry)).Get("/{entryId}", entryHandler.GetEntry)
+		router.With(middleware.RequirePermission(rbac.PermCreateEntry)).Post("/", entryHandler.CreateEntry)
+		router.With(middleware.RequirePermission(rbac.PermUpdateEntry)).Put("/{entryId}", entryHandler.UpdateEntry)
+		router.With(middleware.RequirePermission(rbac.PermDeleteEntry)).Delete("/{entryId}", entryHandler.DeleteEntry)
 
 	})
 	r.Route("/scores", func(router chi.Router) {
 		router.Use(authMiddleware, middleware.InjectScope)
-		// router.With(middleware.RequirePermission(rbac.PermViewTeam)).Get("/", teamHandler.GetTeams)
+		// router.With(middleware.RequirePermission(rbac.PermViewEntry)).Get("/", entryHandler.GetEntries)
 		router.With(middleware.RequirePermission(rbac.PermViewScore)).Get("/{scoreId}", scoreHandler.GetScore)
 		router.With(middleware.RequirePermission(rbac.PermCreateScore)).Post("/", scoreHandler.CreateScores)
 		router.With(middleware.RequirePermission(rbac.PermUpdateScore)).Put("/", scoreHandler.UpdateScores)

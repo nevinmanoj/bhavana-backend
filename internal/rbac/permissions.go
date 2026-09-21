@@ -23,11 +23,11 @@ const (
 	PermDeleteStudent Permission = "student:delete"
 	PermViewStudent   Permission = "student:view"
 
-	//teams
-	PermCreateTeam Permission = "team:create"
-	PermUpdateTeam Permission = "team:update"
-	PermViewTeam   Permission = "team:view"
-	PermDeleteTeam Permission = "team:delete"
+	//entries
+	PermCreateEntry Permission = "entry:create"
+	PermUpdateEntry Permission = "entry:update"
+	PermViewEntry   Permission = "entry:view"
+	PermDeleteEntry Permission = "entry:delete"
 
 	//scores
 	PermCreateScore Permission = "score:create"

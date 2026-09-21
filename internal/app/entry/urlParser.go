@@ -1,16 +1,16 @@
-package team
+package entry
 
 import (
 	"net/url"
 
 	errmap "github.com/nevinmanoj/bhavana-backend/internal/app/errmap"
 	"github.com/nevinmanoj/bhavana-backend/internal/core"
-	"github.com/nevinmanoj/bhavana-backend/internal/domain/team"
+	"github.com/nevinmanoj/bhavana-backend/internal/domain/entry"
 	"github.com/nevinmanoj/bhavana-backend/internal/util"
 )
 
-func parseTeamFilter(q url.Values) (team.TeamFilter, *errmap.BadRequestError) {
-	var f team.TeamFilter
+func parseEntryFilter(q url.Values) (entry.EntryFilter, *errmap.BadRequestError) {
+	var f entry.EntryFilter
 
 	if v := q.Get("category"); v != "" {
 		category, err := core.ParseCategory(v)

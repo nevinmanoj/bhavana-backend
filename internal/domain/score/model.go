@@ -6,14 +6,14 @@ import (
 
 type Score struct {
 	ID         int64     `db:"id"`
-	TeamID     int64     `db:"team_id"`
+	EntryID    int64     `db:"entry_id"`
 	JudgeID    int64     `db:"judge_id"`
 	CriteriaID int64     `db:"criteria_id"`
 	Score      float64   `db:"score"`
 	CreatedAt  time.Time `db:"created_at"`
 }
 type EventScoreRow struct {
-	TeamID        int64    `db:"team_id"`
+	EntryID       int64    `db:"entry_id"`
 	ChestNumber   *int64   `db:"chest_number"`
 	SchoolName    *string  `db:"school_name"`
 	CriteriaID    int64    `db:"criteria_id"`
@@ -29,7 +29,7 @@ type EventScoreRow struct {
 type EventScoresDetailed struct {
 	EventID  int64             `json:"event_id"`
 	Criteria []CriteriaSummary `json:"criteria"`
-	Teams    []*TeamScore      `json:"teams"`
+	Entries  []*EntryScore     `json:"entries"`
 }
 type CriteriaSummary struct {
 	ID       int64   `json:"id"`
@@ -37,13 +37,13 @@ type CriteriaSummary struct {
 	MaxScore float64 `json:"max_score"`
 }
 
-type TeamScore struct {
+type EntryScore struct {
 	ID          int64                   `json:"id"`
 	ChestNumber *int64                  `json:"chest_number"`
 	School      string                  `json:"school,omitempty"`
 	Scores      map[int64]CriteriaScore `json:"scores"`
 	Total       float64                 `json:"total"`
-	TeamTotal   float64                 `json:"team_total,omitempty"`
+	EntryTotal  float64                 `json:"entry_total,omitempty"`
 }
 
 type CriteriaScore struct {

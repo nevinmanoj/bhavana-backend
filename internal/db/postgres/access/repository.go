@@ -51,16 +51,16 @@ func (r *accessRepository) HasScoreAccess(ctx context.Context, db sqlx.ExtContex
 	args := []any{scoreID, userID}
 	return r.accessQueryExecutor(ctx, db, q, args)
 }
-func (r *accessRepository) HasTeamAccess(ctx context.Context, db sqlx.ExtContext, teamID, userID int64) (bool, error) {
+func (r *accessRepository) HasEntryAccess(ctx context.Context, db sqlx.ExtContext, entryID, userID int64) (bool, error) {
 	const q = `
 		SELECT EXISTS (
 			SELECT 1
-			FROM teams t
+			FROM entries t
 			JOIN schools sc ON t.school_id = sc.id
 			WHERE t.id = $1 AND sc.school_admin = $2
 		)
 	`
-	args := []any{teamID, userID}
+	args := []any{entryID, userID}
 	return r.accessQueryExecutor(ctx, db, q, args)
 }
 

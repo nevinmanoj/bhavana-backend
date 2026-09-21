@@ -1,4 +1,4 @@
-package team
+package entry
 
 import (
 	"time"
@@ -6,16 +6,16 @@ import (
 	"github.com/nevinmanoj/bhavana-backend/internal/core"
 )
 
-type TeamFull struct {
-	Team          `db:"team"`
+type EntryFull struct {
+	Entry         `db:"entry"`
 	SchoolName    string        `db:"school_name"`
 	SchoolAddress string        `db:"school_address"`
 	EventTitle    string        `db:"event_title"`
 	Category      core.Category `db:"category"`
-	Members       []TeamMember  `db:"-"`
+	Members       []EntryMember `db:"-"`
 }
 
-type Team struct {
+type Entry struct {
 	ID          int64     `db:"id"`
 	EventID     int64     `db:"event_id"`
 	SchoolID    int64     `db:"school_id"`
@@ -23,9 +23,9 @@ type Team struct {
 	CreatedAt   time.Time `db:"created_at"`
 }
 
-type TeamMember struct {
+type EntryMember struct {
 	Name      string    `db:"name"`
-	TeamID    int64     `db:"team_id"`
+	EntryID   int64     `db:"entry_id"`
 	StudentID int64     `db:"student_id"`
 	CreatedAt time.Time `db:"created_at"`
 }

@@ -8,7 +8,7 @@ import (
 )
 
 type ResultService interface {
-	// GenerateForEvent ranks every team in the event from its aggregate score,
+	// GenerateForEvent ranks every entry in the event from its aggregate score,
 	// maps each rank onto the event's standings, and bulk-inserts the
 	// immutable results snapshot. Runs inside the caller's finalize
 	// transaction. Satisfies event.ResultGenerator.
@@ -29,7 +29,7 @@ func NewResultService(db *sqlx.DB, repo ResultWriteRepository) ResultService {
 }
 
 func (s *resultService) GenerateForEvent(ctx context.Context, tx *sqlx.Tx, eventID int64) error {
-	teams, err := s.repo.GetTeamTotals(ctx, tx, eventID)
+	entries, err := s.repo.GetEntryTotals(ctx, tx, eventID)
 	if err != nil {
 		return err
 	}
@@ -38,7 +38,7 @@ func (s *resultService) GenerateForEvent(ctx context.Context, tx *sqlx.Tx, event
 		return err
 	}
 
-	ranked := Rank(teams, standings)
+	ranked := Rank(entries, standings)
 	for i := range ranked {
 		ranked[i].EventID = eventID
 	}
@@ -62,11 +62,11 @@ func (s *resultService) GetEventResults(ctx context.Context, eventID int64) ([]E
 }
 
 func (s *resultService) GetReadiness(ctx context.Context, eventID int64) (*FinalizeReadiness, error) {
-	totalTeams, err := s.repo.GetTotalTeamsCount(ctx, s.db, eventID)
+	totalEntries, err := s.repo.GetTotalEntriesCount(ctx, s.db, eventID)
 	if err != nil {
 		return nil, err
 	}
-	unscored, err := s.repo.GetUnscoredTeams(ctx, s.db, eventID)
+	unscored, err := s.repo.GetUnscoredEntries(ctx, s.db, eventID)
 	if err != nil {
 		return nil, err
 	}
@@ -80,17 +80,17 @@ func (s *resultService) GetReadiness(ctx context.Context, eventID int64) (*Final
 	}
 
 	if unscored == nil {
-		unscored = []UnscoredTeam{}
+		unscored = []UnscoredEntry{}
 	}
 	if judgeGaps == nil {
 		judgeGaps = []JudgeGap{}
 	}
 
 	return &FinalizeReadiness{
-		TotalTeams:    totalTeams,
-		UnscoredTeams: unscored,
-		JudgeGaps:     judgeGaps,
-		HasStandings:  hasStandings,
+		TotalEntries:    totalEntries,
+		UnscoredEntries: unscored,
+		JudgeGaps:       judgeGaps,
+		HasStandings:    hasStandings,
 	}, nil
 }
 
@@ -121,7 +121,7 @@ func (s *resultService) GetLeaderboard(ctx context.Context, filter LeaderboardFi
 		school.EventBreakdowns = append(school.EventBreakdowns, LeaderboardEventBreakdown{
 			EventID:     r.EventID,
 			EventName:   r.EventName,
-			TeamID:      r.TeamID,
+			EntryID:     r.EntryID,
 			ChestNumber: r.ChestNumber,
 			Position:    r.Position,
 			Points:      r.Points,

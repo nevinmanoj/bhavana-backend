@@ -12,7 +12,7 @@ var (
 	ErrEventFinalized      = errors.New("Event is finalized and cannot be modified")
 	ErrInvalidStatusChange = errors.New("Invalid status change, cannot move event back to draft")
 	ErrEventNotDraft       = errors.New("Event is not in draft status, cannot edit fields")
-	ErrinvalidTeamSize     = errors.New("Invalid team size")
+	ErrInvalidMemberRange  = errors.New("Invalid member range")
 
 	ErrInvalidJudge           = errors.New("User is invalid or not a judge")
 	ErrInvalidJudgeAssignment = errors.New("Judges can only be addded when event is DRAFT, OPEN or CLOSED. Current status does not allow this operation")

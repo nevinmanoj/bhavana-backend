@@ -13,7 +13,7 @@ func errorMapper(err error) error {
 			if pqErr.Constraint == "uq_event_standing_position" {
 				return event.ErrDuplicateStandingPosition
 			}
-			return event.ErrinvalidTeamSize
+			return event.ErrInvalidMemberRange
 		case "P0201":
 			return event.ErrInvalidStatusChange
 		case "P0202":
