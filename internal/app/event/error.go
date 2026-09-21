@@ -78,6 +78,26 @@ func GetEventDomainErrorResponse(err error) ErrorResponse {
 			StatusCode: 400,
 			Message:    event.ErrInvalidCriteriaMove.Error(),
 		}
+	case event.ErrStandingsRequired:
+		return ErrorResponse{
+			StatusCode: 400,
+			Message:    event.ErrStandingsRequired.Error(),
+		}
+	case event.ErrInvalidStandingModification:
+		return ErrorResponse{
+			StatusCode: 400,
+			Message:    event.ErrInvalidStandingModification.Error(),
+		}
+	case event.ErrDuplicateStandingPosition:
+		return ErrorResponse{
+			StatusCode: 400,
+			Message:    event.ErrDuplicateStandingPosition.Error(),
+		}
+	case event.ErrEventNotClosed:
+		return ErrorResponse{
+			StatusCode: 400,
+			Message:    event.ErrEventNotClosed.Error(),
+		}
 
 	default:
 		return ErrorResponse{

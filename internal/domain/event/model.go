@@ -7,9 +7,10 @@ import (
 )
 
 type EventDetails struct {
-	Event    Event
-	Judges   []EventJudge
-	Criteria []EventCriteria
+	Event     Event
+	Judges    []EventJudge
+	Criteria  []EventCriteria
+	Standings []EventStanding
 }
 
 type Event struct {
@@ -35,5 +36,13 @@ type EventCriteria struct {
 	EventID   int64     `db:"event_id"`
 	Title     string    `db:"title"`
 	MaxScore  float64   `db:"max_score"`
+	CreatedAt time.Time `db:"created_at"`
+}
+
+type EventStanding struct {
+	ID        int64     `db:"id"`
+	EventID   int64     `db:"event_id"`
+	Position  int64     `db:"position"`
+	Points    float64   `db:"points"`
 	CreatedAt time.Time `db:"created_at"`
 }

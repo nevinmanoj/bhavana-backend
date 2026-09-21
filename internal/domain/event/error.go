@@ -22,4 +22,9 @@ var (
 	ErrInvalidCriteriaAddition = errors.New("Event criteria can only be added when event is DRAFT. Current status does not allow this operation")
 	ErrInvalidCriteriaEdit     = errors.New("Event criteria can only be edited when event is DRAFT. Current status does not allow this operation")
 	ErrInvalidCriteriaMove     = errors.New("Event criteria can only be moved when event is DRAFT. Current status does not allow this operation")
+
+	ErrStandingsRequired           = errors.New("At least one position-points mapping is required")
+	ErrInvalidStandingModification = errors.New("Event standings can only be modified when event is DRAFT. Current status does not allow this operation")
+	ErrDuplicateStandingPosition   = errors.New("Duplicate position in standings, each position must be unique")
+	ErrEventNotClosed              = errors.New("Event must be CLOSED before it can be finalized")
 )

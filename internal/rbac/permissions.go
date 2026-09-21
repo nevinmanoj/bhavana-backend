@@ -34,4 +34,7 @@ const (
 	PermUpdateScore Permission = "score:update"
 	PermViewScore   Permission = "score:view"
 	PermDeleteScore Permission = "score:delete"
+
+	//results / leaderboard
+	PermViewResult Permission = "result:view"
 )

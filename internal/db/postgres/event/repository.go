@@ -165,7 +165,7 @@ func (r *eventRepository) DeleteEvent(ctx context.Context, db sqlx.ExtContext, e
 	`
 	_, err := db.ExecContext(ctx, query, eventID)
 	if err != nil {
-		return err
+		return errorMapper(err)
 	}
 	return nil
 }
@@ -270,6 +270,82 @@ func (r *eventRepository) DeleteEventCriteria(ctx context.Context, db sqlx.ExtCo
 		WHERE id = $1
 	`
 	_, err := db.ExecContext(ctx, query, criteriaID)
+	if err != nil {
+		return errorMapper(err)
+	}
+	return nil
+}
+
+// event standings
+func (r *eventRepository) GetEventStandings(ctx context.Context, db sqlx.ExtContext, eventID int64) ([]event.EventStanding, error) {
+	standings := []event.EventStanding{}
+	err := sqlx.SelectContext(
+		ctx, db,
+		&standings,
+		`SELECT *
+		FROM event_standings
+		WHERE event_id = $1
+		ORDER BY position ASC`,
+		eventID,
+	)
+	if err != nil {
+		return nil, event.ErrInternal
+	}
+	return standings, nil
+}
+func (r *eventRepository) CreateEventStanding(ctx context.Context, db sqlx.ExtContext, standingToCreate *event.EventStanding) error {
+	query := `
+		INSERT INTO event_standings (
+			event_id,
+			position,
+			points
+		)
+		VALUES (
+			:event_id,
+			:position,
+			:points
+		)
+		RETURNING id, created_at
+	`
+	rows, err := sqlx.NamedQueryContext(ctx, db, query, standingToCreate)
+	if err != nil {
+		return errorMapper(err)
+	}
+	defer rows.Close()
+	if rows.Next() {
+		rows.Scan(&standingToCreate.ID, &standingToCreate.CreatedAt)
+		return nil
+	}
+
+	return event.ErrInternal
+}
+func (r *eventRepository) UpdateEventStanding(ctx context.Context, db sqlx.ExtContext, standingToUpdate *event.EventStanding) error {
+	query := `
+		UPDATE event_standings
+		SET position = :position,
+			points = :points
+		WHERE id = :id
+	`
+	result, err := sqlx.NamedExecContext(ctx, db, query, standingToUpdate)
+	if err != nil {
+		return errorMapper(err)
+	}
+
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return errorMapper(err)
+	}
+	if rows == 0 {
+		return event.ErrNotFound
+	}
+	return nil
+}
+func (r *eventRepository) DeleteEventStanding(ctx context.Context, db sqlx.ExtContext, standingID int64) error {
+	query := `
+		DELETE FROM event_standings
+		WHERE id = $1
+	`
+	_, err := db.ExecContext(ctx, query, standingID)
 	if err != nil {
 		return errorMapper(err)
 	}

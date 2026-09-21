@@ -109,15 +109,13 @@ func (h *EventHandler) CreateEvent(w http.ResponseWriter, r *http.Request) {
 			Status:            req.Status,
 			Category:          req.Category,
 		},
-		Judges:   paresejudgeReqs(req.Judges),
-		Criteria: parseCriteriaReqs(req.Criteria),
+		Judges:    paresejudgeReqs(req.Judges),
+		Criteria:  parseCriteriaReqs(req.Criteria),
+		Standings: parseStandingReqs(req.Standings),
 	}
 	err := h.service.CreateEvent(ctx, &eventToCreate)
 	if err != nil {
-		json.NewEncoder(w).Encode(ErrorResponse{
-			StatusCode: http.StatusInternalServerError,
-			Message:    err.Error(),
-		})
+		json.NewEncoder(w).Encode(GetEventDomainErrorResponse(err))
 		return
 	}
 	eventResponse := ToEventDetailsResponse(&eventToCreate)
@@ -161,8 +159,9 @@ func (h *EventHandler) UpdateEvent(w http.ResponseWriter, r *http.Request) {
 			Status:            req.Status,
 			Category:          req.Category,
 		},
-		Judges:   paresejudgeReqs(req.Judges),
-		Criteria: parseCriteriaReqs(req.Criteria),
+		Judges:    paresejudgeReqs(req.Judges),
+		Criteria:  parseCriteriaReqs(req.Criteria),
+		Standings: parseStandingReqs(req.Standings),
 	}
 
 	eventId, err := util.ParseStrToInt64(eventIdStr)
@@ -287,4 +286,15 @@ func parseCriteriaReqs(criteriaReqs []EventCriteriaRequest) []event.EventCriteri
 		}
 	}
 	return criteria
+}
+func parseStandingReqs(standingReqs []EventStandingRequest) []event.EventStanding {
+	standings := make([]event.EventStanding, len(standingReqs))
+	for i, standingReq := range standingReqs {
+		standings[i] = event.EventStanding{
+			ID:       standingReq.ID,
+			Position: standingReq.Position,
+			Points:   standingReq.Points,
+		}
+	}
+	return standings
 }

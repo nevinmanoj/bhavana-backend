@@ -9,6 +9,13 @@ import (
 	"github.com/nevinmanoj/bhavana-backend/internal/domain/user"
 )
 
+// ResultGenerator is implemented by the result domain's service. Declared here
+// (consumer side) so this package never imports domain/result and there is no
+// import cycle; app.go wires the concrete implementation in.
+type ResultGenerator interface {
+	GenerateForEvent(ctx context.Context, tx *sqlx.Tx, eventID int64) error
+}
+
 type EventService interface {
 	GetEventByID(ctx context.Context, id int64) (*EventDetails, error)
 	GetAllEvents(ctx context.Context, filter EventFilter) ([]Event, error)
@@ -19,13 +26,14 @@ type EventService interface {
 }
 
 type eventService struct {
-	db       *sqlx.DB
-	repo     EventWriteRepository
-	userRepo user.UserReadRepository
+	db              *sqlx.DB
+	repo            EventWriteRepository
+	userRepo        user.UserReadRepository
+	resultGenerator ResultGenerator
 }
 
-func NewEventService(db *sqlx.DB, repo EventWriteRepository, userReadRepo user.UserReadRepository) EventService {
-	return &eventService{db: db, repo: repo, userRepo: userReadRepo}
+func NewEventService(db *sqlx.DB, repo EventWriteRepository, userReadRepo user.UserReadRepository, resultGenerator ResultGenerator) EventService {
+	return &eventService{db: db, repo: repo, userRepo: userReadRepo, resultGenerator: resultGenerator}
 }
 func (s *eventService) GetEventByID(ctx context.Context, id int64) (*EventDetails, error) {
 	tx, err := s.db.BeginTxx(ctx, nil)
@@ -49,10 +57,16 @@ func (s *eventService) GetEventByID(ctx context.Context, id int64) (*EventDetail
 		return nil, err
 	}
 
+	standings, err := s.repo.GetEventStandings(ctx, tx, id)
+	if err != nil {
+		return nil, err
+	}
+
 	return &EventDetails{
-		Event:    *event,
-		Judges:   judges,
-		Criteria: criteria,
+		Event:     *event,
+		Judges:    judges,
+		Criteria:  criteria,
+		Standings: standings,
 	}, nil
 }
 func (s *eventService) GetAllEvents(ctx context.Context, filter EventFilter) ([]Event, error) {
@@ -63,6 +77,13 @@ func (s *eventService) GetAllEvents(ctx context.Context, filter EventFilter) ([]
 	return events, nil
 }
 func (s *eventService) CreateEvent(ctx context.Context, event *EventDetails) error {
+	if len(event.Standings) == 0 {
+		return ErrStandingsRequired
+	}
+	if err := checkDuplicateStandingPositions(event.Standings); err != nil {
+		return err
+	}
+
 	tx, err := s.db.BeginTxx(ctx, nil)
 	if err != nil {
 		return fmt.Errorf("error starting transaction: %w", err)
@@ -82,10 +103,21 @@ func (s *eventService) CreateEvent(ctx context.Context, event *EventDetails) err
 	if err := s.syncEventCriterias(ctx, tx, event); err != nil {
 		return err
 	}
+	//create standings
+	if err := s.syncEventStandings(ctx, tx, event); err != nil {
+		return err
+	}
 
 	return tx.Commit()
 }
 func (s *eventService) UpdateEvent(ctx context.Context, event *EventDetails) error {
+	if len(event.Standings) == 0 {
+		return ErrStandingsRequired
+	}
+	if err := checkDuplicateStandingPositions(event.Standings); err != nil {
+		return err
+	}
+
 	existingEvent, err := s.repo.GetEventByID(ctx, s.db, event.Event.ID)
 	if err != nil {
 		return fmt.Errorf("error fetching event: %w", err)
@@ -132,6 +164,10 @@ func (s *eventService) UpdateEvent(ctx context.Context, event *EventDetails) err
 	if err := s.syncEventCriterias(ctx, tx, event); err != nil {
 		return err
 	}
+	//sync standings
+	if err := s.syncEventStandings(ctx, tx, event); err != nil {
+		return err
+	}
 
 	return tx.Commit()
 }
@@ -142,11 +178,24 @@ func (s *eventService) UpdateEventStatus(ctx context.Context, eventID int64, sta
 	}
 	//check if finalized
 	if existingEvent.Status == core.EventStatusFinalized {
-		return fmt.Errorf("finalized events cannot be updated")
+		return ErrEventFinalized
 	}
 	//check if status is being updated to draft from open or closed
 	if existingEvent.Status != core.EventStatusDraft && status == core.EventStatusDraft {
-		return fmt.Errorf("cannot change event status back to draft")
+		return ErrInvalidStatusChange
+	}
+	//finalizing has extra preconditions and a side effect: computing results
+	if status == core.EventStatusFinalized {
+		if existingEvent.Status != core.EventStatusClosed {
+			return ErrEventNotClosed
+		}
+		standings, err := s.repo.GetEventStandings(ctx, s.db, eventID)
+		if err != nil {
+			return err
+		}
+		if len(standings) == 0 {
+			return ErrStandingsRequired
+		}
 	}
 
 	tx, err := s.db.BeginTxx(ctx, nil)
@@ -161,9 +210,23 @@ func (s *eventService) UpdateEventStatus(ctx context.Context, eventID int64, sta
 		return fmt.Errorf("error updating event Status: %w", err)
 	}
 
+	//compute and persist results once the event reads as finalized in this tx
+	if status == core.EventStatusFinalized {
+		if err := s.resultGenerator.GenerateForEvent(ctx, tx, eventID); err != nil {
+			return err
+		}
+	}
+
 	return tx.Commit()
 }
 func (s *eventService) DeleteEvent(ctx context.Context, eventID int64) error {
+	existingEvent, err := s.repo.GetEventByID(ctx, s.db, eventID)
+	if err != nil {
+		return fmt.Errorf("error fetching event: %w", err)
+	}
+	if existingEvent.Status == core.EventStatusFinalized {
+		return ErrEventFinalized
+	}
 	return s.repo.DeleteEvent(ctx, s.db, eventID)
 }
 
@@ -293,5 +356,100 @@ func (s *eventService) syncEventCriterias(ctx context.Context, tx *sqlx.Tx, even
 		event.Criteria = createdCriteria
 	}
 
+	return nil
+}
+
+func (s *eventService) syncEventStandings(ctx context.Context, tx *sqlx.Tx, event *EventDetails) error {
+	eventID := event.Event.ID
+	existing := []EventStanding{}
+	var err error
+	if eventID != 0 {
+		existing, err = s.repo.GetEventStandings(ctx, tx, eventID)
+		if err != nil {
+			return ErrInternal
+		}
+	}
+	requested := event.Standings
+	existingMap := make(map[int64]EventStanding)
+	for _, st := range existing {
+		existingMap[st.ID] = st
+	}
+
+	requestedMap := make(map[int64]bool)
+	for _, st := range requested {
+		if st.ID != 0 {
+			requestedMap[st.ID] = true
+		}
+	}
+
+	standingsUpdated := false
+
+	// delete standings removed from the request
+	for _, st := range existing {
+		if !requestedMap[st.ID] {
+			if event.Event.Status != core.EventStatusDraft {
+				return ErrInvalidStandingModification
+			}
+			if err := s.repo.DeleteEventStanding(ctx, tx, st.ID); err != nil {
+				return err
+			}
+			standingsUpdated = true
+		}
+	}
+
+	// add new standings, and update existing ones whose position/points changed
+	for _, st := range requested {
+		existingStanding, exists := existingMap[st.ID]
+		if !exists {
+			if event.Event.Status != core.EventStatusDraft {
+				return ErrInvalidStandingModification
+			}
+			if err := s.repo.CreateEventStanding(ctx, tx, &EventStanding{
+				EventID:  eventID,
+				Position: st.Position,
+				Points:   st.Points,
+			}); err != nil {
+				return err
+			}
+			standingsUpdated = true
+			continue
+		}
+		if existingStanding.Position != st.Position || existingStanding.Points != st.Points {
+			if event.Event.Status != core.EventStatusDraft {
+				return ErrInvalidStandingModification
+			}
+			if err := s.repo.UpdateEventStanding(ctx, tx, &EventStanding{
+				ID:       st.ID,
+				EventID:  eventID,
+				Position: st.Position,
+				Points:   st.Points,
+			}); err != nil {
+				return err
+			}
+			standingsUpdated = true
+		}
+	}
+
+	if standingsUpdated {
+		createdStandings, err := s.repo.GetEventStandings(ctx, tx, eventID)
+		if err != nil {
+			return ErrInternal
+		}
+		event.Standings = createdStandings
+	}
+
+	return nil
+}
+
+// checkDuplicateStandingPositions rejects a request containing two standings
+// for the same position before it ever reaches the DB's unique constraint.
+func checkDuplicateStandingPositions(standings []EventStanding) error {
+	seen := make(map[int64]bool)
+	for _, st := range standings {
+		if seen[st.Position] {
+			return ErrDuplicateStandingPosition
+		}
+		seen[st.Position] = true
+	}
 	return nil
 }

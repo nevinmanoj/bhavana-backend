@@ -7,15 +7,16 @@ import (
 
 // requests
 type CreateEventRequest struct {
-	Title             string                 `json:"title" validate:"required"`
-	Description       string                 `json:"description"`
-	MinTeamSize       int64                  `json:"min_team_size" validate:"required"`
-	MaxTeamSize       int64                  `json:"max_team_size" validate:"required"`
-	MaxTeamsPerSchool int64                  `json:"max_teams_per_school" validate:"required"`
-	Status            core.EventStatus       `json:"status" validate:"required,event_status"`
-	Category          core.Category          `json:"category" validate:"required,category"`
-	Judges            []EventJudgeRequest    `json:"judges"`
-	Criteria          []EventCriteriaRequest `json:"criteria"`
+	Title             string                  `json:"title" validate:"required"`
+	Description       string                  `json:"description"`
+	MinTeamSize       int64                   `json:"min_team_size" validate:"required"`
+	MaxTeamSize       int64                   `json:"max_team_size" validate:"required"`
+	MaxTeamsPerSchool int64                   `json:"max_teams_per_school" validate:"required"`
+	Status            core.EventStatus        `json:"status" validate:"required,event_status"`
+	Category          core.Category           `json:"category" validate:"required,category"`
+	Judges            []EventJudgeRequest     `json:"judges"`
+	Criteria          []EventCriteriaRequest  `json:"criteria"`
+	Standings         []EventStandingRequest  `json:"standings" validate:"required,min=1,dive"`
 }
 type UpdateEventRequest struct {
 	ID int64 `json:"id" validate:"required"`
@@ -34,6 +35,11 @@ type EventCriteriaRequest struct {
 	Title    string  `json:"title" validate:"required"`
 	MaxScore float64 `json:"max_score" validate:"required"`
 }
+type EventStandingRequest struct {
+	ID       int64   `json:"id"`
+	Position int64   `json:"position" validate:"required,gte=1"`
+	Points   float64 `json:"points" validate:"gte=0"`
+}
 
 // responses
 type EventResponse struct {
@@ -49,8 +55,9 @@ type EventResponse struct {
 }
 type EventDetailsResponse struct {
 	EventResponse
-	Judges   []EventJudgeResponse    `json:"judges"`
-	Criteria []EventCriteriaResponse `json:"criteria"`
+	Judges    []EventJudgeResponse    `json:"judges"`
+	Criteria  []EventCriteriaResponse `json:"criteria"`
+	Standings []EventStandingResponse `json:"standings"`
 }
 type EventJudgeResponse struct {
 	Name   string `json:"name"`
@@ -60,6 +67,11 @@ type EventCriteriaResponse struct {
 	ID       int64   `json:"id"`
 	Title    string  `json:"title"`
 	MaxScore float64 `json:"max_score"`
+}
+type EventStandingResponse struct {
+	ID       int64   `json:"id"`
+	Position int64   `json:"position"`
+	Points   float64 `json:"points"`
 }
 
 func ToEventDetailsResponse(details *event.EventDetails) EventDetailsResponse {
@@ -78,10 +90,19 @@ func ToEventDetailsResponse(details *event.EventDetails) EventDetailsResponse {
 			MaxScore: c.MaxScore,
 		}
 	}
+	standings := make([]EventStandingResponse, len(details.Standings))
+	for i, st := range details.Standings {
+		standings[i] = EventStandingResponse{
+			ID:       st.ID,
+			Position: st.Position,
+			Points:   st.Points,
+		}
+	}
 	return EventDetailsResponse{
 		EventResponse: ToEventResponse(&details.Event),
 		Judges:        judges,
 		Criteria:      criteria,
+		Standings:     standings,
 	}
 }
 

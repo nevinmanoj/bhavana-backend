@@ -19,6 +19,10 @@ type EventWriteRepository interface {
 
 	CreateEventJudge(ctx context.Context, db sqlx.ExtContext, judge *EventJudge) error
 	DeleteEventJudge(ctx context.Context, db sqlx.ExtContext, eventID int64, userID int64) error
+
+	CreateEventStanding(ctx context.Context, db sqlx.ExtContext, standing *EventStanding) error
+	UpdateEventStanding(ctx context.Context, db sqlx.ExtContext, standing *EventStanding) error
+	DeleteEventStanding(ctx context.Context, db sqlx.ExtContext, standingID int64) error
 }
 type EventReadRepository interface {
 	GetEventByID(ctx context.Context, db sqlx.ExtContext, id int64) (*Event, error)
@@ -27,4 +31,6 @@ type EventReadRepository interface {
 	GetEventJudges(ctx context.Context, db sqlx.ExtContext, eventID int64) ([]EventJudge, error)
 
 	GetEventCriteria(ctx context.Context, db sqlx.ExtContext, eventID int64) ([]EventCriteria, error)
+
+	GetEventStandings(ctx context.Context, db sqlx.ExtContext, eventID int64) ([]EventStanding, error)
 }

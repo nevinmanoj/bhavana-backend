@@ -14,6 +14,7 @@ import (
 	"github.com/nevinmanoj/bhavana-backend/internal/validation"
 
 	appEvent "github.com/nevinmanoj/bhavana-backend/internal/app/event"
+	appResult "github.com/nevinmanoj/bhavana-backend/internal/app/result"
 	appSchool "github.com/nevinmanoj/bhavana-backend/internal/app/school"
 	appScore "github.com/nevinmanoj/bhavana-backend/internal/app/score"
 	appTeam "github.com/nevinmanoj/bhavana-backend/internal/app/team"
@@ -23,6 +24,7 @@ import (
 
 	repoAccess "github.com/nevinmanoj/bhavana-backend/internal/db/postgres/access"
 	repoEvent "github.com/nevinmanoj/bhavana-backend/internal/db/postgres/event"
+	repoResult "github.com/nevinmanoj/bhavana-backend/internal/db/postgres/result"
 	repoSchool "github.com/nevinmanoj/bhavana-backend/internal/db/postgres/school"
 	repoScore "github.com/nevinmanoj/bhavana-backend/internal/db/postgres/score"
 	repoTeam "github.com/nevinmanoj/bhavana-backend/internal/db/postgres/team"
@@ -30,6 +32,7 @@ import (
 
 	domainAccess "github.com/nevinmanoj/bhavana-backend/internal/domain/access"
 	domainEvent "github.com/nevinmanoj/bhavana-backend/internal/domain/event"
+	domainResult "github.com/nevinmanoj/bhavana-backend/internal/domain/result"
 	domainSchool "github.com/nevinmanoj/bhavana-backend/internal/domain/school"
 	domainScore "github.com/nevinmanoj/bhavana-backend/internal/domain/score"
 	domainTeam "github.com/nevinmanoj/bhavana-backend/internal/domain/team"
@@ -67,11 +70,13 @@ func Start() error {
 	schoolReadRepo := repoSchool.NewSchoolReadRepository()
 	teamWrietRepo := repoTeam.NewTeamWriteRepository()
 	scoreWriteRepo := repoScore.NewScoreWriteRepository()
+	resultWriteRepo := repoResult.NewResultWriteRepository()
 
 	//Services
 	accessService := domainAccess.NewAccessService(dbConn, repoAccess)
 	userService := domainUser.NewUserService(dbConn, jwtSecretbyte, userWriteRepo)
-	eventService := domainEvent.NewEventService(dbConn, eventWriteRepo, userReadRepo)
+	resultService := domainResult.NewResultService(dbConn, resultWriteRepo)
+	eventService := domainEvent.NewEventService(dbConn, eventWriteRepo, userReadRepo, resultService)
 	schoolService := domainSchool.NewSchoolService(dbConn, accessService, schoolWriteRepo)
 	teamService := domainTeam.NewTeamService(dbConn, accessService, teamWrietRepo, eventReadRepo, schoolReadRepo)
 	scoreService := domainScore.NewScoreService(dbConn, accessService, scoreWriteRepo)
@@ -82,6 +87,7 @@ func Start() error {
 	schoolHandler := appSchool.NewSchoolHandler(schoolService, validator)
 	teamHandler := appTeam.NewTeamHandler(teamService, validator)
 	scoreHandler := appScore.NewSchoolHandler(scoreService, validator)
+	resultHandler := appResult.NewResultHandler(resultService, validator)
 
 	//CORS
 	r.Use(cors.Handler(cors.Options{
@@ -140,6 +146,8 @@ func Start() error {
 		router.With(middleware.RequirePermission(rbac.PermUpdateEventStatus)).Put("/{eventId}/status", eventHandler.UpdateEventStatus)
 		router.With(middleware.RequirePermission(rbac.PermDeleteEvent)).Delete("/{eventId}", eventHandler.DeleteEvent)
 		router.With(middleware.RequirePermission(rbac.PermViewScore)).Get("/{eventId}/scores", scoreHandler.GetScoresByEventID)
+		router.With(middleware.RequirePermission(rbac.PermViewResult)).Get("/{eventId}/results", resultHandler.GetEventResults)
+		router.With(middleware.RequirePermission(rbac.PermViewResult)).Get("/{eventId}/results/readiness", resultHandler.GetReadiness)
 	})
 
 	//School and student routes
@@ -183,6 +191,12 @@ func Start() error {
 		router.With(middleware.RequirePermission(rbac.PermUpdateScore)).Put("/", scoreHandler.UpdateScores)
 		router.With(middleware.RequirePermission(rbac.PermDeleteScore)).Delete("/{scoreId}", scoreHandler.DeleteScore)
 
+	})
+
+	// Leaderboard route
+	r.Route("/leaderboard", func(router chi.Router) {
+		router.Use(authMiddleware, middleware.InjectScope)
+		router.With(middleware.RequirePermission(rbac.PermViewResult)).Get("/", resultHandler.GetLeaderboard)
 	})
 
 	port := os.Getenv("PORT")

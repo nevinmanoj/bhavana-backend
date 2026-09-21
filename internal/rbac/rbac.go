@@ -10,6 +10,7 @@ var RolePermissions = map[UserRole][]Permission{
 		PermCreateStudent, PermUpdateStudent, PermDeleteStudent, PermViewStudent,
 		PermCreateTeam, PermUpdateTeam, PermViewTeam, PermDeleteTeam,
 		PermCreateScore, PermUpdateScore, PermViewScore, PermDeleteScore,
+		PermViewResult,
 	},
 	UserRoleJudge: {
 		PermViewEvent,

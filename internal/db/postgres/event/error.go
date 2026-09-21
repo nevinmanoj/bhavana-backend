@@ -10,6 +10,9 @@ func errorMapper(err error) error {
 		switch pqErr.Code {
 		//events
 		case "23505":
+			if pqErr.Constraint == "uq_event_standing_position" {
+				return event.ErrDuplicateStandingPosition
+			}
 			return event.ErrinvalidTeamSize
 		case "P0201":
 			return event.ErrInvalidStatusChange
@@ -35,6 +38,12 @@ func errorMapper(err error) error {
 			return event.ErrInvalidCriteriaEdit
 		case "P0211":
 			return event.ErrInvalidCriteriaMove
+		//event_standings related errors
+		case "P0212", "P0213", "P0214", "P0215":
+			return event.ErrInvalidStandingModification
+		//events - finalized delete guard
+		case "P0216":
+			return event.ErrEventFinalized
 		default:
 			return event.ErrInternal
 		}
