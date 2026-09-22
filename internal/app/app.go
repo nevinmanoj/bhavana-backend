@@ -179,6 +179,7 @@ func Start() error {
 		router.With(middleware.RequirePermission(rbac.PermViewEntry)).Get("/", entryHandler.GetEntries)
 		router.With(middleware.RequirePermission(rbac.PermViewEntry)).Get("/{entryId}", entryHandler.GetEntry)
 		router.With(middleware.RequirePermission(rbac.PermCreateEntry)).Post("/", entryHandler.CreateEntry)
+		router.With(middleware.RequirePermission(rbac.PermCreateEntry)).Post("/bulk", entryHandler.CreateEntriesBulk)
 		router.With(middleware.RequirePermission(rbac.PermUpdateEntry)).Put("/{entryId}", entryHandler.UpdateEntry)
 		router.With(middleware.RequirePermission(rbac.PermDeleteEntry)).Delete("/{entryId}", entryHandler.DeleteEntry)
 

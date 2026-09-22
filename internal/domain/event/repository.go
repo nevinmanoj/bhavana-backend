@@ -12,6 +12,10 @@ type EventWriteRepository interface {
 	CreateEvent(ctx context.Context, db sqlx.ExtContext, eventToCreate *Event) error
 	UpdateEvent(ctx context.Context, db sqlx.ExtContext, eventToUpdate *Event) error
 	UpdateEventStatus(ctx context.Context, db sqlx.ExtContext, status *core.EventStatus, eventID int64) error
+	// AssignChestNumbers runs the chest-number draw for an event and reports how
+	// many entries were numbered. Idempotent: entries that already hold a number
+	// are left alone.
+	AssignChestNumbers(ctx context.Context, db sqlx.ExtContext, eventID int64) (int, error)
 	DeleteEvent(ctx context.Context, db sqlx.ExtContext, eventID int64) error
 
 	CreateEventCriteria(ctx context.Context, db sqlx.ExtContext, criteria *EventCriteria) error

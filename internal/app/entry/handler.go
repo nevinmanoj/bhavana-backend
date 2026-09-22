@@ -133,6 +133,52 @@ func (h *EntryHandler) CreateEntry(w http.ResponseWriter, r *http.Request) {
 		StatusCode: http.StatusCreated,
 	})
 }
+func (h *EntryHandler) CreateEntriesBulk(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	var req CreateEntriesBulkRequest
+	dec := json.NewDecoder(r.Body)
+	dec.DisallowUnknownFields()
+	w.Header().Set("Content-Type", "application/json")
+	if err := dec.Decode(&req); err != nil {
+		json.NewEncoder(w).Encode(ErrorResponse{
+			StatusCode: http.StatusBadRequest,
+			Message:    "invalid JSON body " + err.Error(),
+		})
+		return
+	}
+	if err := h.validator.Struct(req); err != nil {
+		json.NewEncoder(w).Encode(ErrorResponse{
+			StatusCode: http.StatusBadRequest,
+			Message:    err.Error(),
+		})
+		return
+	}
+	entriesToCreate := make([]*entry.EntryFull, len(req.Entries))
+	for i, item := range req.Entries {
+		entriesToCreate[i] = &entry.EntryFull{
+			Entry: entry.Entry{
+				EventID:  req.EventID,
+				SchoolID: req.SchoolID,
+			},
+			Members: parseEntryMemberReqs(item.Members),
+		}
+	}
+	err := h.service.CreateEntries(ctx, req.EventID, req.SchoolID, entriesToCreate)
+	if err != nil {
+		json.NewEncoder(w).Encode(GetEntryDomainErrorResponse(err))
+		return
+	}
+	entryResponses := make([]EntryFullResponse, len(entriesToCreate))
+	for i, e := range entriesToCreate {
+		entryResponses[i] = ToEntryFullResponse(e)
+	}
+	json.NewEncoder(w).Encode(GetAllResponsePage[EntryFullResponse]{
+		Message:    "Entries created successfully",
+		Data:       entryResponses,
+		StatusCode: http.StatusCreated,
+	})
+}
+
 func (h *EntryHandler) UpdateEntry(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var req UpdateEntryRequest

@@ -145,7 +145,7 @@ func (r *eventRepository) UpdateEventStatus(ctx context.Context, db sqlx.ExtCont
 	query := `UPDATE events SET status = $1 WHERE id = $2`
 	result, err := db.ExecContext(ctx, query, status, eventID)
 	if err != nil {
-		return err
+		return errorMapper(err)
 	}
 
 	rows, err := result.RowsAffected()
@@ -158,6 +158,19 @@ func (r *eventRepository) UpdateEventStatus(ctx context.Context, db sqlx.ExtCont
 
 	return nil
 }
+// AssignChestNumbers draws chest numbers for every unnumbered entry of the
+// event. The heavy lifting - the advisory lock that serializes allocation and
+// the random draw - lives in assign_event_chest_numbers so that it runs in one
+// statement inside the caller's transaction.
+func (r *eventRepository) AssignChestNumbers(ctx context.Context, db sqlx.ExtContext, eventID int64) (int, error) {
+	var assigned int
+	query := `SELECT assign_event_chest_numbers($1)`
+	if err := sqlx.GetContext(ctx, db, &assigned, query, eventID); err != nil {
+		return 0, errorMapper(err)
+	}
+	return assigned, nil
+}
+
 func (r *eventRepository) DeleteEvent(ctx context.Context, db sqlx.ExtContext, eventID int64) error {
 	query := `
 		DELETE FROM events

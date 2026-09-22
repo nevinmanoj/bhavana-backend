@@ -14,7 +14,19 @@ type CreateEntryRequest struct {
 }
 
 type EntryMemberRequest struct {
-	StudentID int64 `json:"student_id"`
+	StudentID int64 `json:"student_id" validate:"required"`
+}
+
+// CreateEntriesBulkRequest registers several entries for one event and school
+// in a single call. For a solo event each item carries exactly one member.
+type CreateEntriesBulkRequest struct {
+	EventID  int64                  `json:"event_id" validate:"required"`
+	SchoolID int64                  `json:"school_id" validate:"required"`
+	Entries  []BulkEntryItemRequest `json:"entries" validate:"required,min=1,max=200,dive"`
+}
+
+type BulkEntryItemRequest struct {
+	Members []EntryMemberRequest `json:"members" validate:"required,min=1,dive"`
 }
 
 type UpdateEntryRequest struct {
@@ -32,14 +44,14 @@ type EntryFullResponse struct {
 	ID          int64                  `json:"id"`
 	EventID     int64                  `json:"event_id"`
 	SchoolID    int64                  `json:"school_id"`
-	ChestNumber int                    `json:"chest_number"`
+	ChestNumber *int                   `json:"chest_number"`
 	CreatedAt   time.Time              `json:"created_at"`
 	Members     []EntryMemberResponse  `json:"members"`
 }
 type EntryResponseJudge struct {
 	ID          int64 `json:"id"`
 	EventID     int64 `json:"event_id"`
-	ChestNumber int   `json:"chest_number"`
+	ChestNumber *int  `json:"chest_number"`
 }
 
 func ToEntryFullResponse(entry *entry.EntryFull) EntryFullResponse {

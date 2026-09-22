@@ -14,4 +14,7 @@ var (
 	ErrSchoolMismatch         = errors.New("School of student does not match school of entry")
 	ErrCategoryMismatch       = errors.New("Category of student does not match category of event")
 	ErrStudentAlreadyInEntry  = errors.New("Student is already in an entry for this event")
+	ErrRegistrationNotOpen    = errors.New("Entries cannot be registered while the event is in its current status")
+	ErrChestNumberConflict    = errors.New("Chest number conflict, please retry")
+	ErrEmptyBatch             = errors.New("At least one entry is required")
 )

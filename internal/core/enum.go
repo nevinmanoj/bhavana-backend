@@ -8,31 +8,50 @@ import (
 // EventStatus enum for events.status
 type EventStatus string
 
+// The event lifecycle:
+//
+//	draft -> registration_open <-> registration_closed -> preparing
+//	      -> open <-> closed -> finalized
+//
+// Entries are registered during the registration_* states and chest numbers are
+// drawn in one batch on registration_closed -> preparing.
 const (
-	EventStatusDraft     EventStatus = "draft"
-	EventStatusOpen      EventStatus = "open"
-	EventStatusClosed    EventStatus = "closed"
-	EventStatusFinalized EventStatus = "finalized"
+	EventStatusDraft              EventStatus = "draft"
+	EventStatusRegistrationOpen   EventStatus = "registration_open"
+	EventStatusRegistrationClosed EventStatus = "registration_closed"
+	EventStatusPreparing          EventStatus = "preparing"
+	EventStatusOpen               EventStatus = "open"
+	EventStatusClosed             EventStatus = "closed"
+	EventStatusFinalized          EventStatus = "finalized"
 )
 
+// AllEventStatuses is the lifecycle in order.
+var AllEventStatuses = []EventStatus{
+	EventStatusDraft,
+	EventStatusRegistrationOpen,
+	EventStatusRegistrationClosed,
+	EventStatusPreparing,
+	EventStatusOpen,
+	EventStatusClosed,
+	EventStatusFinalized,
+}
+
 func ParseEventStatus(v string) (EventStatus, error) {
-	switch strings.ToLower(v) {
-	case "draft":
-		return EventStatusDraft, nil
-	case "open":
-		return EventStatusOpen, nil
-	case "closed":
-		return EventStatusClosed, nil
-	case "finalized":
-		return EventStatusFinalized, nil
-	default:
-		return "", fmt.Errorf("Invalid event status, must be ['draft','open','closed','finalized'] ")
+	candidate := EventStatus(strings.ToLower(v))
+	if candidate.IsValid() {
+		return candidate, nil
 	}
+	names := make([]string, len(AllEventStatuses))
+	for i, s := range AllEventStatuses {
+		names[i] = string(s)
+	}
+	return "", fmt.Errorf("Invalid event status, must be one of [%s] ", strings.Join(names, ","))
 }
 func (s EventStatus) IsValid() bool {
-	switch s {
-	case EventStatusDraft, EventStatusOpen, EventStatusClosed, EventStatusFinalized:
-		return true
+	for _, known := range AllEventStatuses {
+		if s == known {
+			return true
+		}
 	}
 	return false
 }

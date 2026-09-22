@@ -58,6 +58,21 @@ func GetEntryDomainErrorResponse(err error) ErrorResponse {
 			StatusCode: 400,
 			Message:    entry.ErrStudentAlreadyInEntry.Error(),
 		}
+	case entry.ErrRegistrationNotOpen:
+		return ErrorResponse{
+			StatusCode: 409,
+			Message:    entry.ErrRegistrationNotOpen.Error(),
+		}
+	case entry.ErrChestNumberConflict:
+		return ErrorResponse{
+			StatusCode: 409,
+			Message:    entry.ErrChestNumberConflict.Error(),
+		}
+	case entry.ErrEmptyBatch:
+		return ErrorResponse{
+			StatusCode: 400,
+			Message:    entry.ErrEmptyBatch.Error(),
+		}
 
 	default:
 		return ErrorResponse{

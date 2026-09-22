@@ -24,6 +24,13 @@ func errorMapper(err error) error {
 			return entry.ErrMemberCountBelowMinimum
 		case "P0408":
 			return entry.ErrMemberCountExceedsLimit
+		case "P0409":
+			return entry.ErrRegistrationNotOpen
+		case "23505":
+			if pqErr.Constraint == "uniq_event_chest_number" {
+				return entry.ErrChestNumberConflict
+			}
+			return entry.ErrStudentAlreadyInEntry
 		default:
 			return entry.ErrInternal
 		}

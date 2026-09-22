@@ -180,10 +180,7 @@ func (s *eventService) UpdateEventStatus(ctx context.Context, eventID int64, sta
 	if existingEvent.Status == core.EventStatusFinalized {
 		return ErrEventFinalized
 	}
-	//check if status is being updated to draft from open or closed
-	if existingEvent.Status != core.EventStatusDraft && status == core.EventStatusDraft {
-		return ErrInvalidStatusChange
-	}
+	//the lifecycle graph itself is enforced by the events BEFORE UPDATE trigger
 	//finalizing has extra preconditions and a side effect: computing results
 	if status == core.EventStatusFinalized {
 		if existingEvent.Status != core.EventStatusClosed {
@@ -207,7 +204,15 @@ func (s *eventService) UpdateEventStatus(ctx context.Context, eventID int64, sta
 	//update the status
 	err = s.repo.UpdateEventStatus(ctx, tx, &status, eventID)
 	if err != nil {
-		return fmt.Errorf("error updating event Status: %w", err)
+		return err
+	}
+
+	//registration has just ended: draw chest numbers for the whole event in one
+	//shot, so no two schools race for the same number during registration
+	if existingEvent.Status == core.EventStatusRegistrationClosed && status == core.EventStatusPreparing {
+		if _, err := s.repo.AssignChestNumbers(ctx, tx, eventID); err != nil {
+			return err
+		}
 	}
 
 	//compute and persist results once the event reads as finalized in this tx

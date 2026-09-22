@@ -19,7 +19,8 @@ type Entry struct {
 	ID          int64     `db:"id"`
 	EventID     int64     `db:"event_id"`
 	SchoolID    int64     `db:"school_id"`
-	ChestNumber int       `db:"chest_number"`
+	// nil until the chest-number draw runs on registration_closed -> preparing
+	ChestNumber *int      `db:"chest_number"`
 	CreatedAt   time.Time `db:"created_at"`
 }
 

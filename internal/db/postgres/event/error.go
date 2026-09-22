@@ -15,9 +15,9 @@ func errorMapper(err error) error {
 			}
 			return event.ErrInvalidMemberRange
 		case "P0201":
-			return event.ErrInvalidStatusChange
-		case "P0202":
 			return event.ErrEventFinalized
+		case "P0202":
+			return event.ErrInvalidStatusChange
 		case "P0203":
 			return event.ErrEventNotDraft
 		//event_judge related errors
