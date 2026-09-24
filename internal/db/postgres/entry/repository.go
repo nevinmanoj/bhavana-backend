@@ -19,26 +19,17 @@ func NewEntryReadRepository() entry.EntryReadRepository {
 	return &eventRepository{}
 }
 
-// entries
-func (e *eventRepository) GetAllEntries(ctx context.Context, db sqlx.ExtContext, filter entry.EntryFilter) ([]entry.EntryFull, error) {
+// entryScopedFrom builds the FROM/JOIN clause and role-based scope
+// conditions shared by GetAllEntries and CountEntries, so a judge or school
+// admin's total count can never disagree with the rows they can actually
+// see. selectClause is the only thing that differs between the two callers.
+func entryScopedFrom(ctx context.Context, selectClause string) (baseQuery string, conditions []string, args []any) {
 	scope := ctx.Value(middleware.ContextScope).(rbac.Scope)
 	role := ctx.Value(middleware.ContextUserRole).(rbac.UserRole)
-	entries := []entry.EntryFull{}
-	baseQuery := `SELECT
-	t.id AS "entry.id",
-	t.chest_number AS "entry.chest_number",
-    t.school_id  AS "entry.school_id",
-    t.event_id   AS "entry.event_id",
-    t.created_at AS "entry.created_at",
-	s.name AS school_name,
-	s.address AS school_address,
-	e.title AS event_title,
-	e.category AS category
+	baseQuery = selectClause + `
 	FROM entries t
 	JOIN schools s ON s.id = t.school_id
 	JOIN events e ON e.id = t.event_id`
-	args := []any{}
-	conditions := []string{}
 	if scope.UserID != nil && role == rbac.UserRoleJudge {
 		baseQuery += " JOIN event_judges ej ON ej.event_id = e.id "
 		conditions = append(conditions, "ej.user_id = ?")
@@ -48,6 +39,22 @@ func (e *eventRepository) GetAllEntries(ctx context.Context, db sqlx.ExtContext,
 		conditions = append(conditions, "s.school_admin = ?")
 		args = append(args, *scope.UserID)
 	}
+	return baseQuery, conditions, args
+}
+
+// entries
+func (e *eventRepository) GetAllEntries(ctx context.Context, db sqlx.ExtContext, filter entry.EntryFilter) ([]entry.EntryFull, error) {
+	entries := []entry.EntryFull{}
+	baseQuery, conditions, args := entryScopedFrom(ctx, `SELECT
+	t.id AS "entry.id",
+	t.chest_number AS "entry.chest_number",
+    t.school_id  AS "entry.school_id",
+    t.event_id   AS "entry.event_id",
+    t.created_at AS "entry.created_at",
+	s.name AS school_name,
+	s.address AS school_address,
+	e.title AS event_title,
+	e.category AS category`)
 	finalQuery, finalargs, err := buildEntryQuery(baseQuery, conditions, args, filter)
 	if err != nil {
 		return nil, entry.ErrInternal
@@ -61,6 +68,23 @@ func (e *eventRepository) GetAllEntries(ctx context.Context, db sqlx.ExtContext,
 		return nil, entry.ErrInternal
 	}
 	return entries, nil
+}
+
+// CountEntries returns how many rows GetAllEntries would return for the same
+// filter and caller, ignoring filter.Limit/Offset - it's the "N of TOTAL"
+// half of a paginated list, so it applies the identical scope and WHERE
+// conditions and nothing else.
+func (e *eventRepository) CountEntries(ctx context.Context, db sqlx.ExtContext, filter entry.EntryFilter) (int64, error) {
+	baseQuery, conditions, args := entryScopedFrom(ctx, "SELECT COUNT(*)")
+	finalQuery, finalArgs, err := buildEntryCountQuery(baseQuery, conditions, args, filter)
+	if err != nil {
+		return 0, entry.ErrInternal
+	}
+	var total int64
+	if err := sqlx.GetContext(ctx, db, &total, finalQuery, finalArgs...); err != nil {
+		return 0, entry.ErrInternal
+	}
+	return total, nil
 }
 func (e *eventRepository) GetEntryByID(ctx context.Context, db sqlx.ExtContext, entryId int64) (*entry.EntryFull, error) {
 	entries := []entry.EntryFull{}

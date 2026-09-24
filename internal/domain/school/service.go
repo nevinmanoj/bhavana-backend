@@ -17,7 +17,9 @@ type SchoolService interface {
 	CreateStudent(ctx context.Context, student *Student) error
 	UpdateStudent(ctx context.Context, student *Student) error
 	DeleteStudent(ctx context.Context, id int64) error
-	GetAllStudents(ctx context.Context, filter StudentFilter) ([]Student, error)
+	// GetAllStudents returns the matching page (per filter.Limit/Offset, or
+	// every row if unset) plus the total count for that same filter.
+	GetAllStudents(ctx context.Context, filter StudentFilter) ([]Student, int64, error)
 }
 
 type schoolService struct {
@@ -48,8 +50,16 @@ func (s *schoolService) DeleteSchool(ctx context.Context, id int64) error {
 }
 
 // students
-func (s *schoolService) GetAllStudents(ctx context.Context, filter StudentFilter) ([]Student, error) {
-	return s.repo.GetAllStudents(ctx, s.db, filter)
+func (s *schoolService) GetAllStudents(ctx context.Context, filter StudentFilter) ([]Student, int64, error) {
+	students, err := s.repo.GetAllStudents(ctx, s.db, filter)
+	if err != nil {
+		return nil, 0, err
+	}
+	total, err := s.repo.CountStudents(ctx, s.db, filter)
+	if err != nil {
+		return nil, 0, err
+	}
+	return students, total, nil
 }
 func (s *schoolService) UpdateStudent(ctx context.Context, student *Student) error {
 	access, err := s.accessService.CanModifyStudent(ctx, student.ID)

@@ -214,18 +214,25 @@ func (s *schoolRepository) DeleteStudent(ctx context.Context, db sqlx.ExtContext
 	}
 	return nil
 }
-func (s *schoolRepository) GetAllStudents(ctx context.Context, db sqlx.ExtContext, filter school.StudentFilter) ([]school.Student, error) {
-	students := []school.Student{}
-	baseQuery := `SELECT s.* FROM students s`
+// studentScopedFrom builds the FROM/JOIN clause and role-based scope
+// conditions shared by GetAllStudents and CountStudents, so a school admin's
+// total count can never disagree with the rows they can actually see.
+// selectClause is the only thing that differs between the two callers.
+func studentScopedFrom(ctx context.Context, selectClause string) (baseQuery string, conditions []string, args []any) {
 	scope := ctx.Value(middleware.ContextScope).(rbac.Scope)
 	role := ctx.Value(middleware.ContextUserRole).(rbac.UserRole)
-	args := []any{}
-	conditions := []string{}
+	baseQuery = selectClause + ` FROM students s`
 	if scope.UserID != nil && role == rbac.UserRoleSchoolAdmin {
 		baseQuery += " JOIN schools sc ON s.school_id = sc.id"
 		conditions = append(conditions, "sc.school_admin = ?")
 		args = append(args, scope.UserID)
 	}
+	return baseQuery, conditions, args
+}
+
+func (s *schoolRepository) GetAllStudents(ctx context.Context, db sqlx.ExtContext, filter school.StudentFilter) ([]school.Student, error) {
+	students := []school.Student{}
+	baseQuery, conditions, args := studentScopedFrom(ctx, "SELECT s.*")
 	finalQuery, args, err := buildStudentQuery(baseQuery, args, conditions, filter)
 	if err != nil {
 		return nil, err
@@ -239,6 +246,22 @@ func (s *schoolRepository) GetAllStudents(ctx context.Context, db sqlx.ExtContex
 		return nil, err
 	}
 	return students, nil
+}
+
+// CountStudents returns how many rows GetAllStudents would return for the
+// same filter and caller, ignoring filter.Limit/Offset - the "N of TOTAL"
+// half of a paginated list.
+func (s *schoolRepository) CountStudents(ctx context.Context, db sqlx.ExtContext, filter school.StudentFilter) (int64, error) {
+	baseQuery, conditions, args := studentScopedFrom(ctx, "SELECT COUNT(*)")
+	finalQuery, finalArgs, err := buildStudentCountQuery(baseQuery, args, conditions, filter)
+	if err != nil {
+		return 0, err
+	}
+	var total int64
+	if err := sqlx.GetContext(ctx, db, &total, finalQuery, finalArgs...); err != nil {
+		return 0, err
+	}
+	return total, nil
 }
 func (s *schoolRepository) GetStudentByID(ctx context.Context, db sqlx.ExtContext, id int64) (*school.Student, error) {
 	students := []school.Student{}

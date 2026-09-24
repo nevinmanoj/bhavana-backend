@@ -34,7 +34,7 @@ func (h *EntryHandler) GetEntries(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	entries, err := h.service.GetEntries(ctx, filter)
+	entries, total, err := h.service.GetEntries(ctx, filter)
 	if err != nil {
 		resp = GetEntryDomainErrorResponse(err)
 	} else {
@@ -42,15 +42,21 @@ func (h *EntryHandler) GetEntries(w http.ResponseWriter, r *http.Request) {
 		switch role {
 		case rbac.UserRoleJudge:
 			resp = GetAllResponsePage[EntryResponseJudge]{
-				StatusCode: 200,
-				Message:    "Entries fetched successfully",
-				Data:       mapEntries(entries, ToEntryResponseJudge),
+				StatusCode:   200,
+				Message:      "Entries fetched successfully",
+				Data:         mapEntries(entries, ToEntryResponseJudge),
+				TotalRecords: total,
+				Limit:        filter.Limit,
+				Offset:       filter.Offset,
 			}
 		default:
 			resp = GetAllResponsePage[EntryFullResponse]{
-				StatusCode: 200,
-				Message:    "Entries fetched successfully",
-				Data:       mapEntries(entries, ToEntryFullResponse),
+				StatusCode:   200,
+				Message:      "Entries fetched successfully",
+				Data:         mapEntries(entries, ToEntryFullResponse),
+				TotalRecords: total,
+				Limit:        filter.Limit,
+				Offset:       filter.Offset,
 			}
 		}
 	}

@@ -2,6 +2,7 @@ package school
 
 import (
 	"net/url"
+	"strconv"
 
 	errmap "github.com/nevinmanoj/bhavana-backend/internal/app/errmap"
 	"github.com/nevinmanoj/bhavana-backend/internal/core"
@@ -33,33 +34,37 @@ func parseStudentFilter(q url.Values) (school.StudentFilter, *errmap.BadRequestE
 		f.SchoolID = schoolId
 	}
 
-	// // Pagination defaults
-	// f.Limit = 100
-	// f.Offset = 0
+	// Pagination is opt-in: a caller that never sends limit/offset gets the
+	// unbounded query it always got (f.Limit stays 0). This is shared by
+	// GetStudents (global list) and GetStudentsBySchoolID (one school's
+	// roster) - only the former's frontend caller ever sends these.
+	if v := q.Get("limit"); v != "" {
+		limit, err := strconv.Atoi(v)
+		if err != nil {
+			return f, &errmap.BadRequestError{
+				Param:  "limit",
+				Reason: err.Error(),
+			}
+		}
+		if limit <= 0 || limit > 100 {
+			limit = 100
+		}
+		f.Limit = int64(limit)
+	}
 
-	// if v := q.Get("limit"); v != "" {
-	// 	limit, err := strconv.Atoi(v)
-	// 	if err != nil {
-	// 		return f, &errMap.BadRequestError{
-	// 			Param:  "limit",
-	// 			Reason: err.Error(),
-	// 		}
-	// 	} else if limit > 0 && limit < 100 {
-	// 		f.Limit = limit
-	// 	}
-	// }
-
-	// if v := q.Get("offset"); v != "" {
-	// 	offset, err := strconv.Atoi(v)
-	// 	if err != nil {
-	// 		return f, &errMap.BadRequestError{
-	// 			Param:  "offset",
-	// 			Reason: err.Error(),
-	// 		}
-	// 	} else if offset > 0 {
-	// 		f.Offset = offset
-	// 	}
-	// }
+	if v := q.Get("offset"); v != "" {
+		offset, err := strconv.Atoi(v)
+		if err != nil {
+			return f, &errmap.BadRequestError{
+				Param:  "offset",
+				Reason: err.Error(),
+			}
+		}
+		if offset < 0 {
+			offset = 0
+		}
+		f.Offset = int64(offset)
+	}
 
 	return f, nil
 }

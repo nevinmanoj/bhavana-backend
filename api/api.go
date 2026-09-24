@@ -3,10 +3,12 @@ package api
 type GetAllResponsePage[T any] struct {
 	Message    string `json:"message"`
 	StatusCode int    `json:"status_code"`
-	// TotalRecords int    `json:"total_records"`
-	// Limit        int    `json:"limit"`
-	// Offset       int    `json:"offset"`
-	Data []T `json:"data"`
+	// TotalRecords, Limit and Offset are 0 for endpoints that don't paginate
+	// (the caller never sent limit/offset, so Data is the full result set).
+	TotalRecords int64 `json:"total_records"`
+	Limit        int64 `json:"limit"`
+	Offset       int64 `json:"offset"`
+	Data         []T   `json:"data"`
 }
 type GetResponsePage[T any] struct {
 	Message    string `json:"message"`

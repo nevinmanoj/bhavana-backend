@@ -210,7 +210,7 @@ func (h *SchoolHandler) GetStudents(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(resp)
 		return
 	}
-	students, err := h.service.GetAllStudents(ctx, filter)
+	students, total, err := h.service.GetAllStudents(ctx, filter)
 	if err != nil {
 		resp = GetSchoolDomainErrorResponse(err)
 	} else {
@@ -219,9 +219,12 @@ func (h *SchoolHandler) GetStudents(w http.ResponseWriter, r *http.Request) {
 			studentResponses[i] = ToStudentResponse(&s)
 		}
 		resp = GetAllResponsePage[StudentResponse]{
-			StatusCode: 200,
-			Message:    "Students fetched successfully",
-			Data:       studentResponses,
+			StatusCode:   200,
+			Message:      "Students fetched successfully",
+			Data:         studentResponses,
+			TotalRecords: total,
+			Limit:        filter.Limit,
+			Offset:       filter.Offset,
 		}
 	}
 	json.NewEncoder(w).Encode(resp)
@@ -247,7 +250,7 @@ func (h *SchoolHandler) GetStudentsBySchoolID(w http.ResponseWriter, r *http.Req
 		json.NewEncoder(w).Encode(resp)
 		return
 	}
-	students, err := h.service.GetAllStudents(ctx, filter)
+	students, total, err := h.service.GetAllStudents(ctx, filter)
 	if err != nil {
 		resp = GetSchoolDomainErrorResponse(err)
 	} else {
@@ -256,9 +259,12 @@ func (h *SchoolHandler) GetStudentsBySchoolID(w http.ResponseWriter, r *http.Req
 			studentResponses[i] = ToStudentResponse(&s)
 		}
 		resp = GetAllResponsePage[StudentResponse]{
-			StatusCode: 200,
-			Message:    "Students fetched successfully",
-			Data:       studentResponses,
+			StatusCode:   200,
+			Message:      "Students fetched successfully",
+			Data:         studentResponses,
+			TotalRecords: total,
+			Limit:        filter.Limit,
+			Offset:       filter.Offset,
 		}
 	}
 	json.NewEncoder(w).Encode(resp)

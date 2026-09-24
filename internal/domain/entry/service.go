@@ -22,7 +22,9 @@ type entryService struct {
 }
 
 type EntryService interface {
-	GetEntries(ctx context.Context, filter EntryFilter) ([]EntryFull, error)
+	// GetEntries returns the matching page (per filter.Limit/Offset, or every
+	// row if unset) plus the total count for that same filter.
+	GetEntries(ctx context.Context, filter EntryFilter) ([]EntryFull, int64, error)
 	GetEntryByID(ctx context.Context, entryID int64) (*EntryFull, error)
 	CreateEntry(ctx context.Context, entryToCreate *EntryFull) error
 	// CreateEntries registers a batch of entries for one event and school in a
@@ -47,23 +49,27 @@ func NewEntryService(
 		schoolRepo:    schoolRepo}
 }
 
-func (s *entryService) GetEntries(ctx context.Context, filter EntryFilter) ([]EntryFull, error) {
+func (s *entryService) GetEntries(ctx context.Context, filter EntryFilter) ([]EntryFull, int64, error) {
 	entriesFull := []EntryFull{}
 	entries, err := s.repo.GetAllEntries(ctx, s.db, filter)
 	if err != nil || entries == nil || len(entries) == 0 {
-		return []EntryFull{}, err
+		return []EntryFull{}, 0, err
 	}
 	for _, entry := range entries {
 		entryMembers, err := s.repo.GetEntryMembers(ctx, s.db, entry.ID)
 		if err != nil {
-			return []EntryFull{}, err
+			return []EntryFull{}, 0, err
 		}
 		entriesFull = append(entriesFull, EntryFull{
 			Entry:   entry.Entry,
 			Members: entryMembers,
 		})
 	}
-	return entriesFull, nil
+	total, err := s.repo.CountEntries(ctx, s.db, filter)
+	if err != nil {
+		return []EntryFull{}, 0, err
+	}
+	return entriesFull, total, nil
 }
 
 func (s *entryService) GetEntryByID(ctx context.Context, entryID int64) (*EntryFull, error) {
