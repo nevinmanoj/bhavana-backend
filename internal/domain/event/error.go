@@ -27,5 +27,6 @@ var (
 	ErrInvalidStandingModification = errors.New("Event standings can only be modified when event is DRAFT or PREPARING. Current status does not allow this operation")
 	ErrDuplicateStandingPosition   = errors.New("Duplicate position in standings, each position must be unique")
 	ErrEventNotClosed              = errors.New("Event must be CLOSED before it can be finalized")
+	ErrCriteriaRequired             = errors.New("At least one scoring criterion is required before the event can be opened for judging")
 	ErrChestNumbersNotDrawn        = errors.New("Chest numbers could not be drawn for this event")
 )

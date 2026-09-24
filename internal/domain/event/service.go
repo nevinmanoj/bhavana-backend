@@ -171,6 +171,17 @@ func (s *eventService) UpdateEvent(ctx context.Context, event *EventDetails) err
 
 	return tx.Commit()
 }
+// canEditEventSetup mirrors the frontend's constants/eventStatuses.ts helper
+// of the same name, and the DRAFT/PREPARING window that
+// check_event_judge_modification, check_event_criteria_modification and
+// check_event_standing_modification enforce in the DB. Judges, criteria and
+// standings all stay editable through 'preparing' (after registration closes,
+// before scoring opens) - unlike the event's own core fields, which are
+// draft-only (see the explicit core.EventStatusDraft check in UpdateEvent).
+func canEditEventSetup(status core.EventStatus) bool {
+	return status == core.EventStatusDraft || status == core.EventStatusPreparing
+}
+
 func (s *eventService) UpdateEventStatus(ctx context.Context, eventID int64, status core.EventStatus) error {
 	existingEvent, err := s.repo.GetEventByID(ctx, s.db, eventID)
 	if err != nil {
@@ -192,6 +203,23 @@ func (s *eventService) UpdateEventStatus(ctx context.Context, eventID int64, sta
 		}
 		if len(standings) == 0 {
 			return ErrStandingsRequired
+		}
+	}
+
+	//opening for judging requires at least one scoring criterion - otherwise
+	//there is nothing for a judge to score against. Criteria are only ever
+	//added in draft or preparing (check_event_criteria_modification), so this
+	//can only go from empty to non-empty during those states; re-checking on
+	//every transition into 'open' (including re-opening from closed) is cheap
+	//and mirrors the standings check just above rather than trusting the count
+	//stayed the same.
+	if status == core.EventStatusOpen {
+		criteria, err := s.repo.GetEventCriteria(ctx, s.db, eventID)
+		if err != nil {
+			return err
+		}
+		if len(criteria) == 0 {
+			return ErrCriteriaRequired
 		}
 	}
 
@@ -260,7 +288,7 @@ func (s *eventService) syncEventJudges(ctx context.Context, tx *sqlx.Tx, event *
 	// delete removed judges
 	for _, j := range existing {
 		if !requestedMap[j.UserID] {
-			if event.Event.Status != core.EventStatusDraft {
+			if !canEditEventSetup(event.Event.Status) {
 				return ErrInvalidJudgeRemoval
 			}
 			if err := s.repo.DeleteEventJudge(ctx, tx, eventID, j.UserID); err != nil {
@@ -325,7 +353,7 @@ func (s *eventService) syncEventCriterias(ctx context.Context, tx *sqlx.Tx, even
 	// delete removed criterias
 	for _, c := range existing {
 		if !requestedMap[c.ID] {
-			if event.Event.Status != core.EventStatusDraft {
+			if !canEditEventSetup(event.Event.Status) {
 				return ErrInvalidCriteriaDeletion
 			}
 			if err := s.repo.DeleteEventCriteria(ctx, tx, c.ID); err != nil {
@@ -338,7 +366,7 @@ func (s *eventService) syncEventCriterias(ctx context.Context, tx *sqlx.Tx, even
 	for _, c := range requested {
 		_, exists := existingMap[c.ID]
 		if !exists {
-			if event.Event.Status != core.EventStatusDraft {
+			if !canEditEventSetup(event.Event.Status) {
 				return ErrInvalidCriteriaAddition
 			}
 			// insert new criteria
@@ -392,7 +420,7 @@ func (s *eventService) syncEventStandings(ctx context.Context, tx *sqlx.Tx, even
 	// delete standings removed from the request
 	for _, st := range existing {
 		if !requestedMap[st.ID] {
-			if event.Event.Status != core.EventStatusDraft {
+			if !canEditEventSetup(event.Event.Status) {
 				return ErrInvalidStandingModification
 			}
 			if err := s.repo.DeleteEventStanding(ctx, tx, st.ID); err != nil {
@@ -406,7 +434,7 @@ func (s *eventService) syncEventStandings(ctx context.Context, tx *sqlx.Tx, even
 	for _, st := range requested {
 		existingStanding, exists := existingMap[st.ID]
 		if !exists {
-			if event.Event.Status != core.EventStatusDraft {
+			if !canEditEventSetup(event.Event.Status) {
 				return ErrInvalidStandingModification
 			}
 			if err := s.repo.CreateEventStanding(ctx, tx, &EventStanding{
@@ -420,7 +448,7 @@ func (s *eventService) syncEventStandings(ctx context.Context, tx *sqlx.Tx, even
 			continue
 		}
 		if existingStanding.Position != st.Position || existingStanding.Points != st.Points {
-			if event.Event.Status != core.EventStatusDraft {
+			if !canEditEventSetup(event.Event.Status) {
 				return ErrInvalidStandingModification
 			}
 			if err := s.repo.UpdateEventStanding(ctx, tx, &EventStanding{

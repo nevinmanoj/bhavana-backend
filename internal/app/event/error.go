@@ -98,6 +98,11 @@ func GetEventDomainErrorResponse(err error) ErrorResponse {
 			StatusCode: 400,
 			Message:    event.ErrEventNotClosed.Error(),
 		}
+	case event.ErrCriteriaRequired:
+		return ErrorResponse{
+			StatusCode: 400,
+			Message:    event.ErrCriteriaRequired.Error(),
+		}
 
 	default:
 		return ErrorResponse{
