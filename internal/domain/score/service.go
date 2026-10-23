@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/jmoiron/sqlx"
+	"github.com/nevinmanoj/bhavana-backend/internal/core"
 	"github.com/nevinmanoj/bhavana-backend/internal/domain/access"
 	"github.com/nevinmanoj/bhavana-backend/internal/middleware"
 	"github.com/nevinmanoj/bhavana-backend/internal/rbac"
@@ -178,6 +179,17 @@ func (s *scoreService) DeleteScore(ctx context.Context, scoreID int64) error {
 	}
 	if !access {
 		return ErrUnauthorized
+	}
+	//validate_score only allows writing a score while the event is open, so
+	//deleting one is held to the same window: once judging closes the scores
+	//feed finalize, and once finalized they back the frozen results
+	//(protect_finalized_score_delete enforces the finalized half in the DB)
+	status, err := s.repo.GetScoreEventStatus(ctx, s.db, scoreID)
+	if err != nil {
+		return err
+	}
+	if status != core.EventStatusOpen {
+		return ErrScoreLocked
 	}
 	return s.repo.DeleteScore(ctx, s.db, scoreID)
 }

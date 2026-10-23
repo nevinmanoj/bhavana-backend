@@ -6,6 +6,7 @@ import (
 	"errors"
 
 	"github.com/jmoiron/sqlx"
+	"github.com/nevinmanoj/bhavana-backend/internal/core"
 	"github.com/nevinmanoj/bhavana-backend/internal/domain/score"
 	"github.com/nevinmanoj/bhavana-backend/internal/middleware"
 	"github.com/nevinmanoj/bhavana-backend/internal/rbac"
@@ -121,6 +122,24 @@ func (s *scoreRepository) GetScoreByID(ctx context.Context, db sqlx.ExtContext, 
 		return nil, err
 	}
 	return &scoreFromDB, nil
+}
+func (r *scoreRepository) GetScoreEventStatus(ctx context.Context, db sqlx.ExtContext, scoreID int64) (core.EventStatus, error) {
+	query := `
+		SELECT e.status
+		FROM scores s
+		JOIN event_criteria ec ON ec.id = s.criteria_id
+		JOIN events e          ON e.id  = ec.event_id
+		WHERE s.id = $1
+	`
+	var status core.EventStatus
+	err := sqlx.GetContext(ctx, db, &status, query, scoreID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return "", score.ErrScoreNotFound
+		}
+		return "", score.ErrInternal
+	}
+	return status, nil
 }
 func (e *scoreRepository) CreateScore(ctx context.Context, db sqlx.ExtContext, scoreToCreate *score.Score) error {
 	query := `

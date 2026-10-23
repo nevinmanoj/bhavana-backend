@@ -73,6 +73,11 @@ func GetEntryDomainErrorResponse(err error) ErrorResponse {
 			StatusCode: 400,
 			Message:    entry.ErrEmptyBatch.Error(),
 		}
+	case entry.ErrEventFinalized:
+		return ErrorResponse{
+			StatusCode: 409,
+			Message:    entry.ErrEventFinalized.Error(),
+		}
 
 	default:
 		return ErrorResponse{

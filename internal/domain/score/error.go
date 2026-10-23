@@ -15,4 +15,5 @@ var (
 	ErrNotAJudge        = errors.New("user is not a judge for this event")
 	ErrCriteriaMismatch = errors.New("entry does not belong to the same event as criteria")
 	ErrAlreadyExists    = errors.New("score already exists for this entry, judge and criteria")
+	ErrScoreLocked      = errors.New("scores can only be deleted while the event is open for scoring")
 )

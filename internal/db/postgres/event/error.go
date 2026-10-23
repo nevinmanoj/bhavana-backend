@@ -44,6 +44,8 @@ func errorMapper(err error) error {
 		//events - finalized delete guard
 		case "P0216":
 			return event.ErrEventFinalized
+		case "P0217":
+			return event.ErrEventNotDeletable
 		default:
 			return event.ErrInternal
 		}

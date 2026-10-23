@@ -14,6 +14,10 @@ func errorMapper(err error) error {
 			case "schools_school_admin_key":
 				return school.ErrSchoolAdminAlreadyHasSchool
 			}
+		//finalized-event locks (013_lock_finalized_events.sql), reached
+		//through the cascade from a school or student delete
+		case "P0410", "P0411", "P0505", "P0603":
+			return school.ErrLockedByFinalizedEvent
 		default:
 			return school.ErrInternal
 		}

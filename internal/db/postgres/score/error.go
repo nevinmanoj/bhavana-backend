@@ -18,6 +18,8 @@ func errorMapper(err error) error {
 			return score.ErrNotAJudge
 		case "P0504":
 			return score.ErrCriteriaMismatch
+		case "P0505":
+			return score.ErrScoreLocked
 		default:
 			return score.ErrInternal
 		}

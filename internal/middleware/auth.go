@@ -15,7 +15,7 @@ func Authorization(jwtSecret []byte) func(next http.Handler) http.Handler {
 			var token = r.Header.Get("Authorization")
 			claims, err := auth.ParseToken(token, jwtSecret)
 			if err != nil {
-				http.Error(w, "Unauthorized", http.StatusUnauthorized)
+				writeError(w, http.StatusUnauthorized, "Unauthorized")
 				return
 			}
 			ctx := context.WithValue(r.Context(), ContextUserID, claims.UserID)

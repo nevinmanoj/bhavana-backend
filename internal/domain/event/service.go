@@ -260,6 +260,12 @@ func (s *eventService) DeleteEvent(ctx context.Context, eventID int64) error {
 	if existingEvent.Status == core.EventStatusFinalized {
 		return ErrEventFinalized
 	}
+	//outside the setup window the delete would cascade into judges, criteria
+	//and standings, whose triggers refuse it with a misleading "cannot be
+	//modified" error - say what is actually wrong instead
+	if !canEditEventSetup(existingEvent.Status) {
+		return ErrEventNotDeletable
+	}
 	return s.repo.DeleteEvent(ctx, s.db, eventID)
 }
 

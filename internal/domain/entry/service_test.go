@@ -119,3 +119,45 @@ func TestEntryRegistrationAllowed(t *testing.T) {
 		})
 	}
 }
+
+func TestReconcileEntryUpdate(t *testing.T) {
+	chest := 7
+	stored := func() *Entry {
+		return &Entry{ID: 5, EventID: 10, SchoolID: 20, ChestNumber: &chest}
+	}
+	members := []EntryMember{{StudentID: 1}, {StudentID: 2}}
+
+	tests := []struct {
+		name     string
+		eventID  int64
+		schoolID int64
+		want     error
+	}{
+		{"matching event and school", 10, 20, nil},
+		{"body names another event", 11, 20, ErrInvalidEntryUpdate},
+		{"body names another school", 10, 21, ErrInvalidEntryUpdate},
+		{"body names neither", 0, 0, ErrInvalidEntryUpdate},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			req := &EntryFull{
+				Entry:   Entry{ID: 5, EventID: tt.eventID, SchoolID: tt.schoolID},
+				Members: members,
+			}
+			err := reconcileEntryUpdate(stored(), req)
+			if err != tt.want {
+				t.Fatalf("got %v, want %v", err, tt.want)
+			}
+			if err != nil {
+				return
+			}
+			if req.ChestNumber == nil || *req.ChestNumber != chest {
+				t.Errorf("chest number not taken from the stored entry: %v", req.ChestNumber)
+			}
+			if len(req.Members) != len(members) {
+				t.Errorf("members were not preserved from the request: %v", req.Members)
+			}
+		})
+	}
+}

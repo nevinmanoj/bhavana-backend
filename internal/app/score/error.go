@@ -43,6 +43,11 @@ func GetScoreDomainErrorResponse(err error) ErrorResponse {
 			StatusCode: 400,
 			Message:    score.ErrCriteriaMismatch.Error(),
 		}
+	case score.ErrScoreLocked:
+		return ErrorResponse{
+			StatusCode: 409,
+			Message:    score.ErrScoreLocked.Error(),
+		}
 	case score.ErrAlreadyExists:
 		return ErrorResponse{
 			StatusCode: 400,

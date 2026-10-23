@@ -152,7 +152,7 @@ func (e *eventRepository) DeleteEntry(ctx context.Context, db sqlx.ExtContext, e
 	query := `DELETE FROM entries WHERE id = $1`
 	result, err := db.ExecContext(ctx, query, entryID)
 	if err != nil {
-		return err
+		return errorMapper(err)
 	}
 	rows, _ := result.RowsAffected()
 	if rows == 0 {

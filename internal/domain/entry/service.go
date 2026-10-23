@@ -222,10 +222,23 @@ func (s *entryService) UpdateEntry(ctx context.Context, entryToUpdate *EntryFull
 	}
 	defer tx.Rollback()
 
+	//every check below must run against the entry's real event and school,
+	//never whatever the request body claims, so load the stored entry first
+	stored, err := s.repo.GetEntryByID(ctx, tx, entryToUpdate.ID)
+	if err != nil {
+		return err
+	}
+	if err := reconcileEntryUpdate(&stored.Entry, entryToUpdate); err != nil {
+		return err
+	}
+
 	//get event associated to check constraints
 	event, err := s.eventsRepo.GetEventByID(ctx, tx, entryToUpdate.EventID)
 	if err != nil {
 		return ErrInternal
+	}
+	if event.Status == core.EventStatusFinalized {
+		return ErrEventFinalized
 	}
 
 	//registration window, which differs by role - admins may still fix up an
@@ -242,18 +255,8 @@ func (s *entryService) UpdateEntry(ctx context.Context, entryToUpdate *EntryFull
 	if event.MinMembers > int64(len(entryToUpdate.Members)) {
 		return ErrMemberCountBelowMinimum
 	}
-
-	//fetch entries for this event from this school to see if MaxEntriesPerSchool is exceeded
-	entriesFilter := EntryFilter{
-		EventID:  &entryToUpdate.EventID,
-		SchoolID: &entryToUpdate.SchoolID,
-	}
-	entriesInDB, err := s.repo.GetAllEntries(ctx, tx, entriesFilter)
-	//here we are only checking < because this entry is also counted in entries
-	if event.MaxEntriesPerSchool < int64(len(entriesInDB)) {
-		return ErrEntryCountExceedsLimit
-	}
-	//cant update Entry as cant chnge school, event or chest number
+	//no MaxEntriesPerSchool check: an update never changes how many entries
+	//the school has, only who is in this one
 
 	//update Entry Members
 	err = s.syncEntryMembers(ctx, tx, entryToUpdate)
@@ -271,24 +274,43 @@ func (s *entryService) DeleteEntry(ctx context.Context, entryID int64) error {
 		return ErrUnauthorized
 	}
 
+	entryToDelete, err := s.repo.GetEntryByID(ctx, s.db, entryID)
+	if err != nil {
+		return err
+	}
+	ev, err := s.eventsRepo.GetEventByID(ctx, s.db, entryToDelete.EventID)
+	if err != nil {
+		return ErrInternal
+	}
+	//a finalized event's entries back its frozen results - nobody may remove
+	//them (protect_finalized_entry enforces the same rule in the DB)
+	if ev.Status == core.EventStatusFinalized {
+		return ErrEventFinalized
+	}
+
 	//registration window, which differs by role - admins may remove a late or
-	//mistaken entry any time; school admins only while registration_open
+	//mistaken entry any time before finalize; school admins only while
+	//registration_open
 	role, _ := ctx.Value(middleware.ContextUserRole).(rbac.UserRole)
-	if role != rbac.UserRoleAdmin {
-		entryToDelete, err := s.repo.GetEntryByID(ctx, s.db, entryID)
-		if err != nil {
-			return err
-		}
-		ev, err := s.eventsRepo.GetEventByID(ctx, s.db, entryToDelete.EventID)
-		if err != nil {
-			return ErrInternal
-		}
-		if !entryRegistrationAllowed(role, ev.Status) {
-			return ErrRegistrationNotOpen
-		}
+	if role != rbac.UserRoleAdmin && !entryRegistrationAllowed(role, ev.Status) {
+		return ErrRegistrationNotOpen
 	}
 
 	return s.repo.DeleteEntry(ctx, s.db, entryID)
+}
+
+// reconcileEntryUpdate pins an update to the stored entry. event_id and
+// school_id are immutable, so they always come from the database: a body
+// naming a different event or school is rejected rather than silently
+// corrected, so a client bug surfaces instead of hiding. On success the
+// request's Entry (ID, event, school, chest number, created_at) is replaced
+// with the stored one; only Members is taken from the request.
+func reconcileEntryUpdate(stored *Entry, requested *EntryFull) error {
+	if requested.EventID != stored.EventID || requested.SchoolID != stored.SchoolID {
+		return ErrInvalidEntryUpdate
+	}
+	requested.Entry = *stored
+	return nil
 }
 
 // helper functions

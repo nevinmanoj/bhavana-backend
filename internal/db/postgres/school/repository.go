@@ -69,7 +69,7 @@ func (s *schoolRepository) DeleteSchool(ctx context.Context, db sqlx.ExtContext,
 	query := `DELETE FROM schools WHERE id = $1`
 	result, err := db.ExecContext(ctx, query, id)
 	if err != nil {
-		return err
+		return errorMapper(err)
 	}
 	rows, _ := result.RowsAffected()
 	if rows == 0 {
@@ -206,7 +206,7 @@ func (s *schoolRepository) DeleteStudent(ctx context.Context, db sqlx.ExtContext
 
 	result, err := db.ExecContext(ctx, "DELETE FROM students WHERE id = $1", id)
 	if err != nil {
-		return err
+		return errorMapper(err)
 	}
 	rows, _ := result.RowsAffected()
 	if rows == 0 {

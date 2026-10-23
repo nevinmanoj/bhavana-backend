@@ -29,4 +29,5 @@ var (
 	ErrEventNotClosed              = errors.New("Event must be CLOSED before it can be finalized")
 	ErrCriteriaRequired             = errors.New("At least one scoring criterion is required before the event can be opened for judging")
 	ErrChestNumbersNotDrawn        = errors.New("Chest numbers could not be drawn for this event")
+	ErrEventNotDeletable           = errors.New("Events can only be deleted while in DRAFT or PREPARING")
 )

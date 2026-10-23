@@ -28,6 +28,11 @@ func GetEventDomainErrorResponse(err error) ErrorResponse {
 			StatusCode: 400,
 			Message:    event.ErrEventFinalized.Error(),
 		}
+	case event.ErrEventNotDeletable:
+		return ErrorResponse{
+			StatusCode: 409,
+			Message:    event.ErrEventNotDeletable.Error(),
+		}
 	case event.ErrInvalidStatusChange:
 		return ErrorResponse{
 			StatusCode: 400,
