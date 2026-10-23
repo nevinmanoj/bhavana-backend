@@ -84,3 +84,31 @@ func (c Category) IsValid() bool {
 	}
 	return false
 }
+
+// SchoolStatus enum for schools.status
+//
+//	in_review <-> accepted
+//
+// Schools registered through the public endpoint start in_review and their
+// school admin cannot sign in until an admin accepts them.
+type SchoolStatus string
+
+const (
+	SchoolStatusInReview SchoolStatus = "in_review"
+	SchoolStatusAccepted SchoolStatus = "accepted"
+)
+
+func ParseSchoolStatus(v string) (SchoolStatus, error) {
+	candidate := SchoolStatus(strings.ToLower(v))
+	if !candidate.IsValid() {
+		return "", fmt.Errorf("Invalid school status, must be ['in_review','accepted'] ")
+	}
+	return candidate, nil
+}
+func (s SchoolStatus) IsValid() bool {
+	switch s {
+	case SchoolStatusInReview, SchoolStatusAccepted:
+		return true
+	}
+	return false
+}

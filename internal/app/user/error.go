@@ -23,6 +23,11 @@ func GetUserDomainErrorResponse(err error) ErrorResponse {
 			StatusCode: 400,
 			Message:    user.ErrAlreadyExists.Error(),
 		}
+	case user.ErrRegistrationUnderReview:
+		return ErrorResponse{
+			StatusCode: 403,
+			Message:    user.ErrRegistrationUnderReview.Error(),
+		}
 	case user.ErrInvalidCredentials:
 		return ErrorResponse{
 			StatusCode: 401,

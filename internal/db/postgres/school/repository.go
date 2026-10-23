@@ -5,6 +5,7 @@ import (
 	"database/sql"
 
 	"github.com/jmoiron/sqlx"
+	"github.com/nevinmanoj/bhavana-backend/internal/core"
 	"github.com/nevinmanoj/bhavana-backend/internal/domain/school"
 	"github.com/nevinmanoj/bhavana-backend/internal/middleware"
 	"github.com/nevinmanoj/bhavana-backend/internal/rbac"
@@ -33,18 +34,34 @@ func (s *schoolRepository) SchoolExists(ctx context.Context, db sqlx.ExtContext,
 func (s *schoolRepository) CreateSchool(ctx context.Context, db sqlx.ExtContext, schoolToCreate *school.School) error {
 	query := `
 		INSERT INTO schools (
+			school_admin,
 			name,
 			address,
 			contact_name,
 			contact_email,
-			contact_phone
+			contact_phone,
+			status,
+			principal_name,
+			principal_phone,
+			participants_mc,
+			participants_pc,
+			participants_hc,
+			non_participants
 		)
 		VALUES (
+			:school_admin,
 			:name,
 			:address,
 			:contact_name,
 			:contact_email,
-			:contact_phone
+			:contact_phone,
+			:status,
+			:principal_name,
+			:principal_phone,
+			:participants_mc,
+			:participants_pc,
+			:participants_hc,
+			:non_participants
 		)
 		RETURNING id, created_at
 	`
@@ -133,7 +150,13 @@ func (s *schoolRepository) UpdateSchool(ctx context.Context, db sqlx.ExtContext,
 			address = :address,
 			contact_name = :contact_name,
 			contact_email = :contact_email,
-			contact_phone = :contact_phone
+			contact_phone = :contact_phone,
+			principal_name = :principal_name,
+			principal_phone = :principal_phone,
+			participants_mc = :participants_mc,
+			participants_pc = :participants_pc,
+			participants_hc = :participants_hc,
+			non_participants = :non_participants
 		WHERE id = :id
 	`
 	result, err := sqlx.NamedExecContext(ctx, db, query, schoolToUpdate)
@@ -305,4 +328,47 @@ func (s *schoolRepository) StudentExists(ctx context.Context, db sqlx.ExtContext
 		return false, err
 	}
 	return count > 0, nil
+}
+
+func (s *schoolRepository) UpdateSchoolStatus(ctx context.Context, db sqlx.ExtContext, id int64, status core.SchoolStatus) error {
+	result, err := db.ExecContext(ctx, `UPDATE schools SET status = $1 WHERE id = $2`, status, id)
+	if err != nil {
+		return errorMapper(err)
+	}
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return school.ErrInternal
+	}
+	if rows == 0 {
+		return school.ErrSchoolNotFound
+	}
+	return nil
+}
+
+func (s *schoolRepository) LockSchoolForDelete(ctx context.Context, db sqlx.ExtContext, id int64) (*int64, core.SchoolStatus, error) {
+	var row struct {
+		SchoolAdmin *int64            `db:"school_admin"`
+		Status      core.SchoolStatus `db:"status"`
+	}
+	err := sqlx.GetContext(ctx, db, &row, `SELECT school_admin, status FROM schools WHERE id = $1 FOR UPDATE`, id)
+	if err == sql.ErrNoRows {
+		return nil, "", school.ErrSchoolNotFound
+	}
+	if err != nil {
+		return nil, "", school.ErrInternal
+	}
+	return row.SchoolAdmin, row.Status, nil
+}
+
+func (s *schoolRepository) IsRegistrationOpen(ctx context.Context, db sqlx.ExtContext) (bool, error) {
+	var open bool
+	if err := sqlx.GetContext(ctx, db, &open, `SELECT is_open FROM school_registration`); err != nil {
+		return false, err
+	}
+	return open, nil
+}
+
+func (s *schoolRepository) SetRegistrationOpen(ctx context.Context, db sqlx.ExtContext, open bool) error {
+	_, err := db.ExecContext(ctx, `UPDATE school_registration SET is_open = $1, updated_at = NOW()`, open)
+	return err
 }

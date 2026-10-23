@@ -11,4 +11,6 @@ var (
 	ErrUnauthorized                = errors.New("Unauthorized")
 	ErrSchoolAdminAlreadyHasSchool = errors.New("school admin already has a school")
 	ErrLockedByFinalizedEvent      = errors.New("cannot delete: it has entries, scores or results in a finalized event")
+	ErrEmailTaken                  = errors.New("An account with this email already exists.")
+	ErrRegistrationClosed          = errors.New("School registration is currently closed.")
 )

@@ -2,9 +2,11 @@ package user
 
 import (
 	"context"
+	"database/sql"
 
 	"github.com/jmoiron/sqlx"
 	auth "github.com/nevinmanoj/bhavana-backend/internal/auth"
+	"github.com/nevinmanoj/bhavana-backend/internal/core"
 	user "github.com/nevinmanoj/bhavana-backend/internal/domain/user"
 )
 
@@ -137,4 +139,21 @@ func (r *userRepository) ExistsAsJudge(ctx context.Context, db sqlx.ExtContext, 
 		return false, err
 	}
 	return count > 0, nil
+}
+
+func (r *userRepository) DeleteUser(ctx context.Context, db sqlx.ExtContext, id int64) error {
+	_, err := db.ExecContext(ctx, `DELETE FROM users WHERE id = $1`, id)
+	return err
+}
+
+func (r *userRepository) GetSchoolStatusForAdmin(ctx context.Context, db sqlx.ExtContext, userID int64) (*core.SchoolStatus, error) {
+	var status core.SchoolStatus
+	err := sqlx.GetContext(ctx, db, &status, `SELECT status FROM schools WHERE school_admin = $1`, userID)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &status, nil
 }

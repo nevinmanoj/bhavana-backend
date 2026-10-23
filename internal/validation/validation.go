@@ -1,12 +1,16 @@
 package validation
 
 import (
+	"regexp"
+
 	"github.com/go-playground/validator/v10"
 	"github.com/nevinmanoj/bhavana-backend/internal/core"
 	"github.com/nevinmanoj/bhavana-backend/internal/rbac"
 )
 
-func NewValidator() *validator.Validate {
+var mobileRe = regexp.MustCompile(`^[6-9][0-9]{9}$`)
+
+func NewValidator()*validator.Validate {
 	v := validator.New()
 
 	// register event status validation
@@ -34,6 +38,20 @@ func NewValidator() *validator.Validate {
 			return false
 		}
 		return category.IsValid()
+	})
+
+	//register school status validation
+	v.RegisterValidation("school_status", func(fl validator.FieldLevel) bool {
+		status, ok := fl.Field().Interface().(core.SchoolStatus)
+		if !ok {
+			return false
+		}
+		return status.IsValid()
+	})
+
+	//register mobile validation (10-digit Indian mobile, already normalized)
+	v.RegisterValidation("mobile", func(fl validator.FieldLevel) bool {
+		return mobileRe.MatchString(fl.Field().String())
 	})
 
 	return v

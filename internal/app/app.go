@@ -77,7 +77,7 @@ func Start() error {
 	userService := domainUser.NewUserService(dbConn, jwtSecretbyte, userWriteRepo)
 	resultService := domainResult.NewResultService(dbConn, resultWriteRepo)
 	eventService := domainEvent.NewEventService(dbConn, eventWriteRepo, userReadRepo, resultService)
-	schoolService := domainSchool.NewSchoolService(dbConn, accessService, schoolWriteRepo)
+	schoolService := domainSchool.NewSchoolService(dbConn, accessService, schoolWriteRepo, userWriteRepo)
 	entryService := domainEntry.NewEntryService(dbConn, accessService, entryWriteRepo, eventReadRepo, schoolReadRepo)
 	scoreService := domainScore.NewScoreService(dbConn, accessService, scoreWriteRepo)
 
@@ -152,19 +152,28 @@ func Start() error {
 
 	//School and student routes
 	r.Route("/schools", func(router chi.Router) {
-		router.Use(authMiddleware, middleware.InjectScope)
-		router.With(middleware.RequirePermission(rbac.PermViewSchool)).Get("/", schoolHandler.GetSchools)
-		router.With(middleware.RequirePermission(rbac.PermViewSchool)).Get("/{schoolId}", schoolHandler.GetSchool)
-		router.With(middleware.RequirePermission(rbac.PermCreateSchool)).Post("/", schoolHandler.CreateSchool)
-		router.With(middleware.RequirePermission(rbac.PermUpdateSchool)).Put("/{schoolId}", schoolHandler.UpdateSchool)
-		router.With(middleware.RequirePermission(rbac.PermDeleteSchool)).Delete("/{schoolId}", schoolHandler.DeleteSchool)
+		// public
+		router.Post("/register", schoolHandler.RegisterSchool)
+		router.Get("/registration", schoolHandler.GetRegistrationOpen)
 
-		router.Route("/{schoolId}/students", func(studentRouter chi.Router) {
-			studentRouter.With(middleware.RequirePermission(rbac.PermViewStudent)).Get("/", schoolHandler.GetStudentsBySchoolID)
-			studentRouter.With(middleware.RequirePermission(rbac.PermCreateStudent)).Post("/", schoolHandler.CreateStudent)
-			studentRouter.With(middleware.RequirePermission(rbac.PermUpdateStudent)).Put("/{studentId}", schoolHandler.UpdateStudent)
-			studentRouter.With(middleware.RequirePermission(rbac.PermDeleteStudent)).Delete("/{studentId}", schoolHandler.DeleteStudent)
+		// protected
+		router.Group(func(groupRouter chi.Router) {
+			groupRouter.Use(authMiddleware, middleware.InjectScope)
+			groupRouter.With(middleware.RequirePermission(rbac.PermUpdateSchool)).Put("/registration", schoolHandler.SetRegistrationOpen)
+			groupRouter.With(middleware.RequirePermission(rbac.PermUpdateSchool)).Put("/{schoolId}/status", schoolHandler.UpdateSchoolStatus)
+			groupRouter.With(middleware.RequirePermission(rbac.PermViewSchool)).Get("/", schoolHandler.GetSchools)
+			groupRouter.With(middleware.RequirePermission(rbac.PermViewSchool)).Get("/{schoolId}", schoolHandler.GetSchool)
+			groupRouter.With(middleware.RequirePermission(rbac.PermCreateSchool)).Post("/", schoolHandler.CreateSchool)
+			groupRouter.With(middleware.RequirePermission(rbac.PermUpdateSchool)).Put("/{schoolId}", schoolHandler.UpdateSchool)
+			groupRouter.With(middleware.RequirePermission(rbac.PermDeleteSchool)).Delete("/{schoolId}", schoolHandler.DeleteSchool)
 
+			groupRouter.Route("/{schoolId}/students", func(studentRouter chi.Router) {
+				studentRouter.With(middleware.RequirePermission(rbac.PermViewStudent)).Get("/", schoolHandler.GetStudentsBySchoolID)
+				studentRouter.With(middleware.RequirePermission(rbac.PermCreateStudent)).Post("/", schoolHandler.CreateStudent)
+				studentRouter.With(middleware.RequirePermission(rbac.PermUpdateStudent)).Put("/{studentId}", schoolHandler.UpdateStudent)
+				studentRouter.With(middleware.RequirePermission(rbac.PermDeleteStudent)).Delete("/{studentId}", schoolHandler.DeleteStudent)
+
+			})
 		})
 	})
 

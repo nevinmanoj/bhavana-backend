@@ -5,7 +5,9 @@ import (
 
 	"github.com/jmoiron/sqlx"
 	auth "github.com/nevinmanoj/bhavana-backend/internal/auth"
+	"github.com/nevinmanoj/bhavana-backend/internal/core"
 	"github.com/nevinmanoj/bhavana-backend/internal/rbac"
+	"github.com/nevinmanoj/bhavana-backend/internal/util"
 )
 
 type UserService interface {
@@ -26,6 +28,7 @@ func NewUserService(db *sqlx.DB, jwtSecret []byte, repo UserWriteRepository) Use
 }
 
 func (s *userService) CreateUser(ctx context.Context, user *User, password, jwtToken string) error {
+	user.Email = util.NormalizeEmail(user.Email)
 	if user.Role == rbac.UserRoleAdmin || user.Role == rbac.UserRoleSchoolAdmin {
 		if jwtToken == "" {
 			return ErrUnauthorized
@@ -42,13 +45,25 @@ func (s *userService) CreateUser(ctx context.Context, user *User, password, jwtT
 }
 func (s *userService) LoginUser(ctx context.Context, email, password string) (string, *User, error) {
 	// Implementation for user login
-	user, err := s.repo.GetUserByEmail(ctx, s.db, email)
+	user, err := s.repo.GetUserByEmail(ctx, s.db, util.NormalizeEmail(email))
 	if err != nil {
 		return "", nil, err
 	}
 	err = auth.CheckPassword(password, user.PasswordHash)
 	if err != nil {
 		return "", nil, ErrInvalidCredentials
+	}
+
+	// A school admin whose school is still in review can't sign in yet. Checked
+	// after the password so the response never leaks registration state.
+	if user.Role == rbac.UserRoleSchoolAdmin {
+		status, err := s.repo.GetSchoolStatusForAdmin(ctx, s.db, user.ID)
+		if err != nil {
+			return "", nil, ErrInternal
+		}
+		if status != nil && *status == core.SchoolStatusInReview {
+			return "", nil, ErrRegistrationUnderReview
+		}
 	}
 
 	// create and issue JWT token
