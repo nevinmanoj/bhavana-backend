@@ -28,6 +28,16 @@ func GetUserDomainErrorResponse(err error) ErrorResponse {
 			StatusCode: 403,
 			Message:    user.ErrRegistrationUnderReview.Error(),
 		}
+	case user.ErrInvalidResetToken:
+		return ErrorResponse{
+			StatusCode: 400,
+			Message:    user.ErrInvalidResetToken.Error(),
+		}
+	case user.ErrWrongCurrentPassword:
+		return ErrorResponse{
+			StatusCode: 400,
+			Message:    user.ErrWrongCurrentPassword.Error(),
+		}
 	case user.ErrInvalidCredentials:
 		return ErrorResponse{
 			StatusCode: 401,

@@ -7,15 +7,24 @@ import (
 	"github.com/nevinmanoj/bhavana-backend/internal/core"
 )
 
+// LockedSchool is the slice of a row-locked school that the service decides on.
+type LockedSchool struct {
+	SchoolAdmin  *int64            `db:"school_admin"`
+	Status       core.SchoolStatus `db:"status"`
+	Name         string            `db:"name"`
+	ContactEmail string            `db:"contact_email"`
+}
+
 type SchoolWriteRepository interface {
 	SchoolReadRepository
 	CreateSchool(ctx context.Context, db sqlx.ExtContext, SchoolToCreate *School) error
 	UpdateSchool(ctx context.Context, db sqlx.ExtContext, SchoolToUpdate *School) error
 	UpdateSchoolStatus(ctx context.Context, db sqlx.ExtContext, id int64, status core.SchoolStatus) error
 	DeleteSchool(ctx context.Context, db sqlx.ExtContext, id int64) error
-	// LockSchoolForDelete row-locks the school and returns what the delete
-	// path needs to decide whether its school admin account goes too.
-	LockSchoolForDelete(ctx context.Context, db sqlx.ExtContext, id int64) (adminID *int64, status core.SchoolStatus, err error)
+	// LockSchool row-locks the school for the rest of the transaction and
+	// returns what delete, update, accept and resend decide on.
+	LockSchool(ctx context.Context, db sqlx.ExtContext, id int64) (*LockedSchool, error)
+	UpdateContactEmail(ctx context.Context, db sqlx.ExtContext, id int64, email string) error
 	SchoolExists(ctx context.Context, db sqlx.ExtContext, schoolID int64) (bool, error)
 	SetRegistrationOpen(ctx context.Context, db sqlx.ExtContext, open bool) error
 

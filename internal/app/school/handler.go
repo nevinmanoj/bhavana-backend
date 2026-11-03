@@ -411,9 +411,9 @@ func (h *SchoolHandler) DeleteStudent(w http.ResponseWriter, r *http.Request) {
 
 func trim(s string) string { return strings.TrimSpace(s) }
 
-// RegisterSchool is the public sign-up: it creates the school admin login and
-// the school (in review) together. No token is returned, since the account
-// can't sign in until an admin accepts the school.
+// RegisterSchool is the public sign-up: it creates the school admin login
+// (with no password yet) and the school (in review) together. Accepting the
+// school emails the password.
 func (h *SchoolHandler) RegisterSchool(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var req RegisterSchoolRequest
@@ -439,7 +439,7 @@ func (h *SchoolHandler) RegisterSchool(w http.ResponseWriter, r *http.Request) {
 	schoolToCreate := req.toSchool()
 	// the contact person is the school admin
 	admin := &user.User{Name: req.ContactName, Email: req.ContactEmail}
-	if err := h.service.RegisterSchool(ctx, &schoolToCreate, admin, req.Password); err != nil {
+	if err := h.service.RegisterSchool(ctx, &schoolToCreate, admin); err != nil {
 		json.NewEncoder(w).Encode(GetSchoolDomainErrorResponse(err))
 		return
 	}
@@ -478,7 +478,8 @@ func (h *SchoolHandler) UpdateSchoolStatus(w http.ResponseWriter, r *http.Reques
 		})
 		return
 	}
-	if err := h.service.UpdateSchoolStatus(ctx, *schoolId, req.Status); err != nil {
+	loginEmail, err := h.service.UpdateSchoolStatus(ctx, *schoolId, req.Status)
+	if err != nil {
 		json.NewEncoder(w).Encode(GetSchoolDomainErrorResponse(err))
 		return
 	}
@@ -487,10 +488,51 @@ func (h *SchoolHandler) UpdateSchoolStatus(w http.ResponseWriter, r *http.Reques
 		json.NewEncoder(w).Encode(GetSchoolDomainErrorResponse(err))
 		return
 	}
-	json.NewEncoder(w).Encode(PostResponsePage[SchoolResponse]{
+	json.NewEncoder(w).Encode(PostResponsePage[UpdateSchoolStatusResponse]{
 		Message:    "School status updated successfully",
-		Data:       ToSchoolResponse(updated),
+		Data:       UpdateSchoolStatusResponse{SchoolResponse: ToSchoolResponse(updated), LoginEmail: loginEmail},
 		StatusCode: http.StatusOK,
+	})
+}
+
+// SendLoginDetails emails an accepted school's admin a new password,
+// optionally to a corrected address.
+func (h *SchoolHandler) SendLoginDetails(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	w.Header().Set("Content-Type", "application/json")
+	schoolId, err := util.ParseStrToInt64(chi.URLParam(r, "schoolId"))
+	if err != nil {
+		json.NewEncoder(w).Encode(ErrorResponse{
+			StatusCode: http.StatusBadRequest,
+			Message:    "Invalid school ID in URL parameter",
+		})
+		return
+	}
+	var req SendLoginDetailsRequest
+	dec := json.NewDecoder(r.Body)
+	dec.DisallowUnknownFields()
+	if err := dec.Decode(&req); err != nil {
+		json.NewEncoder(w).Encode(ErrorResponse{
+			StatusCode: http.StatusBadRequest,
+			Message:    "invalid JSON body",
+		})
+		return
+	}
+	req.Email = util.NormalizeEmail(req.Email)
+	if err := h.validator.Struct(req); err != nil {
+		json.NewEncoder(w).Encode(ErrorResponse{
+			StatusCode: http.StatusBadRequest,
+			Message:    err.Error(),
+		})
+		return
+	}
+	if err := h.service.SendLoginDetails(ctx, *schoolId, req.Email); err != nil {
+		json.NewEncoder(w).Encode(GetSchoolDomainErrorResponse(err))
+		return
+	}
+	json.NewEncoder(w).Encode(PostResponsePage[any]{
+		Message:    "Login details sent to " + req.Email + ".",
+		StatusCode: http.StatusNoContent,
 	})
 }
 

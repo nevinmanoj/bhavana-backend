@@ -1,6 +1,7 @@
 package app
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -10,6 +11,7 @@ import (
 	chimiddle "github.com/go-chi/chi/middleware"
 	"github.com/go-chi/cors"
 	postgres "github.com/nevinmanoj/bhavana-backend/internal/db/postgres"
+	"github.com/nevinmanoj/bhavana-backend/internal/mail"
 	"github.com/nevinmanoj/bhavana-backend/internal/middleware"
 	"github.com/nevinmanoj/bhavana-backend/internal/validation"
 
@@ -48,6 +50,18 @@ func Start() error {
 	jwtSecret := os.Getenv("JWT_SECRET")
 	jwtSecretbyte := []byte(jwtSecret)
 
+	//mail: no default mode, so a missing setting stops startup instead of
+	//silently logging generated passwords and reset links
+	mailer, err := mail.New(os.Getenv("MAIL_MODE"), os.Getenv("ACS_CONNECTION_STRING"), os.Getenv("MAIL_SENDER"))
+	if err != nil {
+		return err
+	}
+	//frontend address, for the links in emails
+	appURL := os.Getenv("APP_URL")
+	if appURL == "" {
+		return errors.New("APP_URL is required")
+	}
+
 	//postgres
 	dbConn := postgres.NewPostgres(dsn)
 
@@ -74,10 +88,10 @@ func Start() error {
 
 	//Services
 	accessService := domainAccess.NewAccessService(dbConn, repoAccess)
-	userService := domainUser.NewUserService(dbConn, jwtSecretbyte, userWriteRepo)
+	userService := domainUser.NewUserService(dbConn, jwtSecretbyte, userWriteRepo, mailer, appURL)
 	resultService := domainResult.NewResultService(dbConn, resultWriteRepo)
 	eventService := domainEvent.NewEventService(dbConn, eventWriteRepo, userReadRepo, resultService)
-	schoolService := domainSchool.NewSchoolService(dbConn, accessService, schoolWriteRepo, userWriteRepo)
+	schoolService := domainSchool.NewSchoolService(dbConn, accessService, schoolWriteRepo, userWriteRepo, mailer, appURL)
 	entryService := domainEntry.NewEntryService(dbConn, accessService, entryWriteRepo, eventReadRepo, schoolReadRepo)
 	scoreService := domainScore.NewScoreService(dbConn, accessService, scoreWriteRepo)
 
@@ -126,11 +140,15 @@ func Start() error {
 		// public
 		router.Post("/login", userHandler.LoginUser)
 		router.Post("/register", userHandler.CreateUser)
+		router.Post("/forgot-password", userHandler.ForgotPassword)
+		router.Post("/reset-password", userHandler.ResetPassword)
 
 		// protected
 		router.Group(func(groupRouter chi.Router) {
 			groupRouter.Use(authMiddleware, middleware.InjectScope)
 			groupRouter.Get("/me", userHandler.GetMe)
+			// every signed-in user may change their own password
+			groupRouter.Put("/me/password", userHandler.ChangePassword)
 			groupRouter.With(middleware.RequirePermission(rbac.PermViewUser)).Get("/", userHandler.GetUsers)
 			groupRouter.With(middleware.RequirePermission(rbac.PermViewUser)).Get("/{userId}", userHandler.GetUser)
 		})
@@ -161,6 +179,7 @@ func Start() error {
 			groupRouter.Use(authMiddleware, middleware.InjectScope)
 			groupRouter.With(middleware.RequirePermission(rbac.PermUpdateSchool)).Put("/registration", schoolHandler.SetRegistrationOpen)
 			groupRouter.With(middleware.RequirePermission(rbac.PermUpdateSchool)).Put("/{schoolId}/status", schoolHandler.UpdateSchoolStatus)
+			groupRouter.With(middleware.RequirePermission(rbac.PermUpdateSchool)).Post("/{schoolId}/login-details", schoolHandler.SendLoginDetails)
 			groupRouter.With(middleware.RequirePermission(rbac.PermViewSchool)).Get("/", schoolHandler.GetSchools)
 			groupRouter.With(middleware.RequirePermission(rbac.PermViewSchool)).Get("/{schoolId}", schoolHandler.GetSchool)
 			groupRouter.With(middleware.RequirePermission(rbac.PermCreateSchool)).Post("/", schoolHandler.CreateSchool)

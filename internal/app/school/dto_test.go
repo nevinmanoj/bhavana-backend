@@ -1,6 +1,8 @@
 package school
 
 import (
+	"encoding/json"
+	"strings"
 	"testing"
 
 	"github.com/nevinmanoj/bhavana-backend/internal/validation"
@@ -22,7 +24,7 @@ func TestSchoolFieldsNormalizeAndValidate(t *testing.T) {
 
 	f := validFields()
 	f.normalize()
-	if err := v.Struct(RegisterSchoolRequest{SchoolFields: f, Password: "secret1"}); err != nil {
+	if err := v.Struct(RegisterSchoolRequest{SchoolFields: f}); err != nil {
 		t.Fatalf("valid registration rejected: %v", err)
 	}
 	if f.ContactEmail != "anu@example.com" || f.ContactPhone != "9876543210" || f.PrincipalPhone != "9876543211" || f.Name != "St Mary" {
@@ -49,11 +51,16 @@ func TestSchoolFieldsNormalizeAndValidate(t *testing.T) {
 			t.Errorf("%s: expected validation error", name)
 		}
 	}
+}
 
-	// short password only matters for registration
-	f = validFields()
-	f.normalize()
-	if err := v.Struct(RegisterSchoolRequest{SchoolFields: f, Password: "123"}); err == nil {
-		t.Error("short password accepted")
+// Registration no longer takes a password: acceptance emails a generated one.
+// Handlers decode with DisallowUnknownFields, so a stale client still sending
+// one gets a clear error instead of having it silently ignored.
+func TestRegisterSchoolRequestRejectsPassword(t *testing.T) {
+	dec := json.NewDecoder(strings.NewReader(`{"name":"x","password":"secret1"}`))
+	dec.DisallowUnknownFields()
+	var req RegisterSchoolRequest
+	if err := dec.Decode(&req); err == nil {
+		t.Error("password field accepted")
 	}
 }

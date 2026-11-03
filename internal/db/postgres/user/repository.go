@@ -3,8 +3,10 @@ package user
 import (
 	"context"
 	"database/sql"
+	"time"
 
 	"github.com/jmoiron/sqlx"
+	"github.com/lib/pq"
 	auth "github.com/nevinmanoj/bhavana-backend/internal/auth"
 	"github.com/nevinmanoj/bhavana-backend/internal/core"
 	user "github.com/nevinmanoj/bhavana-backend/internal/domain/user"
@@ -40,11 +42,17 @@ func (r *userRepository) CreateUser(ctx context.Context, db sqlx.ExtContext, pas
 	if exists {
 		return user.ErrAlreadyExists
 	}
-	passwordHash, err := auth.HashPassword(password)
-	if err != nil {
-		return user.ErrInternal
+	// "" means "no password yet": only RegisterSchool passes it, and the
+	// account can't sign in until acceptance emails it a generated one.
+	// CreateUserRequest requires min=6, so the Users page can't create one.
+	userToCreate.PasswordHash = ""
+	if password != "" {
+		passwordHash, err := auth.HashPassword(password)
+		if err != nil {
+			return user.ErrInternal
+		}
+		userToCreate.PasswordHash = passwordHash
 	}
-	userToCreate.PasswordHash = passwordHash
 
 	query := `
 		INSERT INTO users (
@@ -156,4 +164,72 @@ func (r *userRepository) GetSchoolStatusForAdmin(ctx context.Context, db sqlx.Ex
 		return nil, err
 	}
 	return &status, nil
+}
+
+func (r *userRepository) SetPasswordHash(ctx context.Context, db sqlx.ExtContext, id int64, hash string) error {
+	result, err := db.ExecContext(ctx, `UPDATE users SET password_hash = $1 WHERE id = $2`, hash, id)
+	if err != nil {
+		return user.ErrInternal
+	}
+	if rows, _ := result.RowsAffected(); rows == 0 {
+		return user.ErrNotFound
+	}
+	return nil
+}
+
+func (r *userRepository) UpdateEmail(ctx context.Context, db sqlx.ExtContext, id int64, email string) error {
+	result, err := db.ExecContext(ctx, `UPDATE users SET email = $1 WHERE id = $2`, email, id)
+	if pqErr, ok := err.(*pq.Error); ok && pqErr.Code == "23505" {
+		return user.ErrAlreadyExists
+	}
+	if err != nil {
+		return user.ErrInternal
+	}
+	if rows, _ := result.RowsAffected(); rows == 0 {
+		return user.ErrNotFound
+	}
+	return nil
+}
+
+func (r *userRepository) CreateResetToken(ctx context.Context, db sqlx.ExtContext, userID int64, hash []byte, expiresAt time.Time) error {
+	_, err := db.ExecContext(ctx,
+		`INSERT INTO password_reset_tokens (user_id, token_hash, expires_at) VALUES ($1, $2, $3)`,
+		userID, hash, expiresAt,
+	)
+	return err
+}
+
+func (r *userRepository) HasRecentResetToken(ctx context.Context, db sqlx.ExtContext, userID int64, since time.Time) (bool, error) {
+	var exists bool
+	err := sqlx.GetContext(ctx, db, &exists,
+		`SELECT EXISTS (SELECT 1 FROM password_reset_tokens WHERE user_id = $1 AND created_at > $2)`,
+		userID, since,
+	)
+	return exists, err
+}
+
+func (r *userRepository) ConsumeResetToken(ctx context.Context, db sqlx.ExtContext, hash []byte) (int64, error) {
+	var userID int64
+	err := sqlx.GetContext(ctx, db, &userID, `
+		UPDATE password_reset_tokens
+		SET used_at = NOW()
+		WHERE token_hash = $1 AND used_at IS NULL AND expires_at > NOW()
+		RETURNING user_id`,
+		hash,
+	)
+	if err == sql.ErrNoRows {
+		return 0, user.ErrInvalidResetToken
+	}
+	if err != nil {
+		return 0, user.ErrInternal
+	}
+	return userID, nil
+}
+
+func (r *userRepository) InvalidateResetTokens(ctx context.Context, db sqlx.ExtContext, userID int64) error {
+	_, err := db.ExecContext(ctx,
+		`UPDATE password_reset_tokens SET used_at = NOW() WHERE user_id = $1 AND used_at IS NULL`,
+		userID,
+	)
+	return err
 }

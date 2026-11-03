@@ -11,6 +11,7 @@ import (
 	user "github.com/nevinmanoj/bhavana-backend/internal/domain/user"
 	"github.com/nevinmanoj/bhavana-backend/internal/middleware"
 	"github.com/nevinmanoj/bhavana-backend/internal/rbac"
+	"github.com/nevinmanoj/bhavana-backend/internal/util"
 )
 
 type UserHandler struct {
@@ -143,6 +144,98 @@ func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 		StatusCode: http.StatusCreated,
 	})
 }
+const forgotPasswordMessage = "If an account exists for this email, we've sent a link to reset your password."
+
+// ForgotPassword answers the same way whatever the email, so it can't be used
+// to find out which accounts exist. The email itself goes out in the background.
+func (h *UserHandler) ForgotPassword(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	var req ForgotPasswordRequest
+	dec := json.NewDecoder(r.Body)
+	dec.DisallowUnknownFields()
+	if err := dec.Decode(&req); err != nil {
+		json.NewEncoder(w).Encode(ErrorResponse{
+			StatusCode: http.StatusBadRequest,
+			Message:    "invalid JSON body",
+		})
+		return
+	}
+	req.Email = util.NormalizeEmail(req.Email)
+	if err := h.validator.Struct(req); err != nil {
+		json.NewEncoder(w).Encode(ErrorResponse{
+			StatusCode: http.StatusBadRequest,
+			Message:    "Please enter a valid email address.",
+		})
+		return
+	}
+	h.service.ForgotPassword(req.Email)
+	json.NewEncoder(w).Encode(PostResponsePage[any]{
+		Message:    forgotPasswordMessage,
+		StatusCode: http.StatusOK,
+	})
+}
+
+func (h *UserHandler) ResetPassword(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	w.Header().Set("Content-Type", "application/json")
+	var req ResetPasswordRequest
+	dec := json.NewDecoder(r.Body)
+	dec.DisallowUnknownFields()
+	if err := dec.Decode(&req); err != nil {
+		json.NewEncoder(w).Encode(ErrorResponse{
+			StatusCode: http.StatusBadRequest,
+			Message:    "invalid JSON body",
+		})
+		return
+	}
+	if err := h.validator.Struct(req); err != nil {
+		json.NewEncoder(w).Encode(ErrorResponse{
+			StatusCode: http.StatusBadRequest,
+			Message:    err.Error(),
+		})
+		return
+	}
+	if err := h.service.ResetPassword(ctx, req.Token, req.NewPassword); err != nil {
+		json.NewEncoder(w).Encode(GetUserDomainErrorResponse(err))
+		return
+	}
+	json.NewEncoder(w).Encode(PostResponsePage[any]{
+		Message:    "Password changed",
+		StatusCode: http.StatusOK,
+	})
+}
+
+func (h *UserHandler) ChangePassword(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	userID := ctx.Value(middleware.ContextUserID).(int64)
+	w.Header().Set("Content-Type", "application/json")
+	var req ChangePasswordRequest
+	dec := json.NewDecoder(r.Body)
+	dec.DisallowUnknownFields()
+	if err := dec.Decode(&req); err != nil {
+		json.NewEncoder(w).Encode(ErrorResponse{
+			StatusCode: http.StatusBadRequest,
+			Message:    "invalid JSON body",
+		})
+		return
+	}
+	if err := h.validator.Struct(req); err != nil {
+		json.NewEncoder(w).Encode(ErrorResponse{
+			StatusCode: http.StatusBadRequest,
+			Message:    err.Error(),
+		})
+		return
+	}
+	if err := h.service.ChangePassword(ctx, userID, req.CurrentPassword, req.NewPassword); err != nil {
+		json.NewEncoder(w).Encode(GetUserDomainErrorResponse(err))
+		return
+	}
+	json.NewEncoder(w).Encode(PutResponsePage[any]{
+		Message:    "Password changed",
+		StatusCode: http.StatusOK,
+	})
+}
+
 func (h *UserHandler) LoginUser(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var req LoginUserRequest

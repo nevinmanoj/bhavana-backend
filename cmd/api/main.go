@@ -18,7 +18,7 @@ func main() {
 	}
 
 	if err := app.Start(); err != nil {
-		fmt.Println("Error starting server:", err)
+		log.Fatal("Error starting server: ", err)
 	}
 
 }

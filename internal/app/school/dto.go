@@ -63,13 +63,22 @@ type UpdateSchoolRequest struct {
 	SchoolFields
 }
 
+// RegisterSchoolRequest has no password: acceptance emails a generated one.
 type RegisterSchoolRequest struct {
 	SchoolFields
-	Password string `json:"password" validate:"required,min=6"`
 }
 
 type UpdateSchoolStatusRequest struct {
 	Status core.SchoolStatus `json:"status" validate:"required,school_status"`
+}
+
+type UpdateSchoolStatusResponse struct {
+	SchoolResponse
+	LoginEmail school.LoginEmail `json:"login_email"`
+}
+
+type SendLoginDetailsRequest struct {
+	Email string `json:"email" validate:"required,email"`
 }
 
 type RegistrationOpenRequest struct {

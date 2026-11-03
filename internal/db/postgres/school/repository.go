@@ -345,19 +345,28 @@ func (s *schoolRepository) UpdateSchoolStatus(ctx context.Context, db sqlx.ExtCo
 	return nil
 }
 
-func (s *schoolRepository) LockSchoolForDelete(ctx context.Context, db sqlx.ExtContext, id int64) (*int64, core.SchoolStatus, error) {
-	var row struct {
-		SchoolAdmin *int64            `db:"school_admin"`
-		Status      core.SchoolStatus `db:"status"`
-	}
-	err := sqlx.GetContext(ctx, db, &row, `SELECT school_admin, status FROM schools WHERE id = $1 FOR UPDATE`, id)
+func (s *schoolRepository) LockSchool(ctx context.Context, db sqlx.ExtContext, id int64) (*school.LockedSchool, error) {
+	var locked school.LockedSchool
+	err := sqlx.GetContext(ctx, db, &locked,
+		`SELECT school_admin, status, name, contact_email FROM schools WHERE id = $1 FOR UPDATE`, id)
 	if err == sql.ErrNoRows {
-		return nil, "", school.ErrSchoolNotFound
+		return nil, school.ErrSchoolNotFound
 	}
 	if err != nil {
-		return nil, "", school.ErrInternal
+		return nil, school.ErrInternal
 	}
-	return row.SchoolAdmin, row.Status, nil
+	return &locked, nil
+}
+
+func (s *schoolRepository) UpdateContactEmail(ctx context.Context, db sqlx.ExtContext, id int64, email string) error {
+	result, err := db.ExecContext(ctx, `UPDATE schools SET contact_email = $1 WHERE id = $2`, email, id)
+	if err != nil {
+		return errorMapper(err)
+	}
+	if rows, _ := result.RowsAffected(); rows == 0 {
+		return school.ErrSchoolNotFound
+	}
+	return nil
 }
 
 func (s *schoolRepository) IsRegistrationOpen(ctx context.Context, db sqlx.ExtContext) (bool, error) {
