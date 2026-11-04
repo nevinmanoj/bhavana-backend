@@ -1,0 +1,5 @@
+Sign-in page: {{.LoginURL}}
+Email: {{.Email}}
+Password: {{.Password}}
+
+Please keep this email. You can change this password after signing in, using "Change password" at the bottom of the menu. If you forget it, use "Forgot password?" on the sign-in page.

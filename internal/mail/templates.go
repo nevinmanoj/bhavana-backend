@@ -1,110 +1,100 @@
 package mail
 
 import (
-	"fmt"
-	"html"
+	"bytes"
+	"embed"
+	htmltemplate "html/template"
 	"net/url"
 	"strings"
+	texttemplate "text/template"
 )
 
+// The wording of every email lives in templates/. Each email is a .html and a
+// .txt file with the same name; a change to one usually belongs in the other.
+// layout.html wraps every HTML email, and login_details is shared by the two
+// emails that carry a password.
+//
+// The files are compiled into the binary, because the runtime image holds only
+// the binary. html/template escapes values for us; the .txt files go through
+// text/template so a name like St Mary's stays as typed.
+//
+//go:embed templates
+var templateFiles embed.FS
+
+var (
+	htmlTemplates = htmltemplate.Must(htmltemplate.ParseFS(templateFiles, "templates/*.html"))
+	textTemplates = texttemplate.Must(texttemplate.ParseFS(templateFiles, "templates/*.txt"))
+)
+
+// emailData is what the templates can read. Each email fills in what it needs.
+type emailData struct {
+	Name       string
+	Email      string
+	SchoolName string
+	Password   string
+	LoginURL   string
+	ResetLink  string
+}
+
 func RegistrationReceivedEmail(email, name, schoolName string) Message {
-	text := fmt.Sprintf(`Hello %s,
-
-We've received the registration for %s. An admin will review it.
-
-Once it's accepted, we'll email your sign-in password to this address. You don't need to do anything now.
-
-If you didn't register this school, you can ignore this email.
-`, name, schoolName)
-
-	body := greeting(name) +
-		p("We've received the registration for <strong>"+h(schoolName)+"</strong>. An admin will review it.") +
-		p("Once it's accepted, we'll email your sign-in password to this address. You don't need to do anything now.") +
-		p("If you didn't register this school, you can ignore this email.")
-
-	return Message{
-		To:        email,
-		ToName:    name,
-		Subject:   "Bhavana: we received your school registration",
-		PlainText: text,
-		HTML:      page(body),
-	}
+	return message("registration_received", "Bhavana: we received your school registration", emailData{
+		Name:       name,
+		Email:      email,
+		SchoolName: schoolName,
+	})
 }
 
 func AcceptedLoginEmail(appURL, email, name, schoolName, password string) Message {
-	return loginEmail(appURL, email, name, password,
-		"Bhavana: your school registration is accepted",
-		fmt.Sprintf("The registration for %s has been accepted. You can now sign in.", schoolName),
-		"The registration for <strong>"+h(schoolName)+"</strong> has been accepted. You can now sign in.",
-	)
+	return message("accepted_login", "Bhavana: your school registration is accepted", emailData{
+		Name:       name,
+		Email:      email,
+		SchoolName: schoolName,
+		Password:   password,
+		LoginURL:   baseURL(appURL) + "/login",
+	})
 }
 
 func NewPasswordEmail(appURL, email, name, schoolName, password string) Message {
-	return loginEmail(appURL, email, name, password,
-		"Bhavana: your new sign-in password",
-		fmt.Sprintf("A new password has been created for %s. Your old password no longer works.", schoolName),
-		"A new password has been created for <strong>"+h(schoolName)+"</strong>. Your old password no longer works.",
-	)
-}
-
-func loginEmail(appURL, email, name, password, subject, introText, introHTML string) Message {
-	loginURL := baseURL(appURL) + "/login"
-	const keep = `Please keep this email. You can change this password after signing in, using "Change password" at the bottom of the menu. If you forget it, use "Forgot password?" on the sign-in page.`
-
-	text := fmt.Sprintf(`Hello %s,
-
-%s
-
-Sign-in page: %s
-Email: %s
-Password: %s
-
-%s
-`, name, introText, loginURL, email, password, keep)
-
-	body := greeting(name) +
-		p(introHTML) +
-		p(`Sign-in page: <a href="`+h(loginURL)+`">`+h(loginURL)+`</a><br>Email: `+h(email)) +
-		`<p style="margin:0 0 16px">Password:<br><span style="display:inline-block;margin-top:6px;padding:8px 12px;background:#f3f4f6;border-radius:6px;font-family:Consolas,Menlo,monospace;font-size:20px;letter-spacing:1px">` + h(password) + `</span></p>` +
-		p(h(keep))
-
-	return Message{To: email, ToName: name, Subject: subject, PlainText: text, HTML: page(body)}
+	return message("new_password", "Bhavana: your new sign-in password", emailData{
+		Name:       name,
+		Email:      email,
+		SchoolName: schoolName,
+		Password:   password,
+		LoginURL:   baseURL(appURL) + "/login",
+	})
 }
 
 func PasswordResetEmail(appURL, email, name, token string) Message {
-	link := baseURL(appURL) + "/reset-password?token=" + url.QueryEscape(token)
+	return message("password_reset", "Bhavana: reset your password", emailData{
+		Name:      name,
+		Email:     email,
+		ResetLink: baseURL(appURL) + "/reset-password?token=" + url.QueryEscape(token),
+	})
+}
 
-	text := fmt.Sprintf(`Hello %s,
-
-Someone asked to reset the password for %s. To choose a new password, open this link:
-
-%s
-
-The link works once and expires in 24 hours. If you didn't ask for this, you can ignore this email. Your password hasn't changed.
-`, name, email, link)
-
-	body := greeting(name) +
-		p("Someone asked to reset the password for "+h(email)+". To choose a new password, open this link:") +
-		p(`<a href="`+h(link)+`">Choose a new password</a>`) +
-		p("The link works once and expires in 24 hours. If you didn't ask for this, you can ignore this email. Your password hasn't changed.")
+// message renders one email. Rendering can only fail on a mistake in a template
+// file, such as a misspelled field, so it panics rather than making every
+// caller handle an error. The tests render every email and catch those.
+func message(template, subject string, data emailData) Message {
+	var text, body, page bytes.Buffer
+	must(textTemplates.ExecuteTemplate(&text, template+".txt", data))
+	must(htmlTemplates.ExecuteTemplate(&body, template+".html", data))
+	// body is already escaped, so layout.html must not escape it again.
+	must(htmlTemplates.ExecuteTemplate(&page, "layout.html", htmltemplate.HTML(body.String())))
 
 	return Message{
-		To:        email,
-		ToName:    name,
-		Subject:   "Bhavana: reset your password",
-		PlainText: text,
-		HTML:      page(body),
+		To:        data.Email,
+		ToName:    data.Name,
+		Subject:   subject,
+		PlainText: text.String(),
+		HTML:      page.String(),
+	}
+}
+
+func must(err error) {
+	if err != nil {
+		panic(err)
 	}
 }
 
 func baseURL(appURL string) string { return strings.TrimRight(appURL, "/") }
-
-func h(s string) string { return html.EscapeString(s) }
-
-func p(inner string) string { return `<p style="margin:0 0 16px">` + inner + `</p>` }
-
-func greeting(name string) string { return p("Hello " + h(name) + ",") }
-
-func page(body string) string {
-	return `<!DOCTYPE html><html><body style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.5;color:#111827">` + body + `</body></html>`
-}

@@ -1,0 +1,5 @@
+Hello {{.Name}},
+
+The registration for {{.SchoolName}} has been accepted. You can now sign in.
+
+{{template "login_details.txt" . -}}

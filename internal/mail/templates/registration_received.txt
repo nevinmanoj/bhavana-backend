@@ -1,0 +1,7 @@
+Hello {{.Name}},
+
+We've received the registration for {{.SchoolName}}. An admin will review it.
+
+Once it's accepted, we'll email your sign-in password to this address. You don't need to do anything now.
+
+If you didn't register this school, you can ignore this email.
