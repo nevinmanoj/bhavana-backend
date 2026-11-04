@@ -126,9 +126,10 @@ func (s *eventService) UpdateEvent(ctx context.Context, event *EventDetails) err
 	if existingEvent.Status == core.EventStatusFinalized {
 		return ErrEventFinalized
 	}
-	//check if status is being updated to draft from open or closed
-	if existingEvent.Status != core.EventStatusDraft && event.Event.Status == core.EventStatusDraft {
-		return ErrInvalidStatusChange
+	//status only moves through UpdateEventStatus, which owns the finalize
+	//preconditions and the results computation
+	if err := checkStatusUnchanged(existingEvent.Status, event.Event.Status); err != nil {
+		return err
 	}
 	//check if we are editing core fields when not in draft status
 	if existingEvent.Status != core.EventStatusDraft {
@@ -171,6 +172,17 @@ func (s *eventService) UpdateEvent(ctx context.Context, event *EventDetails) err
 
 	return tx.Commit()
 }
+
+// checkStatusUnchanged rejects an edit whose status differs from the stored
+// one, rather than silently keeping the stored value, so a client bug or a page
+// left open across a status change surfaces instead of hiding.
+func checkStatusUnchanged(stored, requested core.EventStatus) error {
+	if requested != stored {
+		return ErrStatusChangeNotAllowed
+	}
+	return nil
+}
+
 // canEditEventSetup mirrors the frontend's constants/eventStatuses.ts helper
 // of the same name, and the DRAFT/PREPARING window that
 // check_event_judge_modification, check_event_criteria_modification and

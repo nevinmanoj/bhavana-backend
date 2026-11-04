@@ -38,6 +38,11 @@ func GetEventDomainErrorResponse(err error) ErrorResponse {
 			StatusCode: 400,
 			Message:    event.ErrInvalidStatusChange.Error(),
 		}
+	case event.ErrStatusChangeNotAllowed:
+		return ErrorResponse{
+			StatusCode: 400,
+			Message:    event.ErrStatusChangeNotAllowed.Error(),
+		}
 	case event.ErrEventNotDraft:
 		return ErrorResponse{
 			StatusCode: 400,

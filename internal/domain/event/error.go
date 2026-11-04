@@ -11,6 +11,7 @@ var (
 	ErrAlreadyExists       = errors.New("Event already exists")
 	ErrEventFinalized      = errors.New("Event is finalized and cannot be modified")
 	ErrInvalidStatusChange = errors.New("Invalid event status transition. Allowed: draft -> registration_open <-> registration_closed -> preparing -> open <-> closed -> finalized")
+	ErrStatusChangeNotAllowed = errors.New("Event status cannot be changed while editing an event. Reload the page and use the status actions")
 	ErrEventNotDraft       = errors.New("Event is not in draft status, cannot edit fields")
 	ErrInvalidMemberRange  = errors.New("Invalid member range")
 

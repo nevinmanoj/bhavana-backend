@@ -123,8 +123,7 @@ func (r *eventRepository) UpdateEvent(ctx context.Context, db sqlx.ExtContext, e
 			min_members = :min_members,
 			max_members = :max_members,
 			max_entries_per_school = :max_entries_per_school,
-			category = :category,
-			status = :status
+			category = :category
 		WHERE id = :id
 	`
 	result, err := sqlx.NamedExecContext(ctx, db, query, eventToUpdate)
