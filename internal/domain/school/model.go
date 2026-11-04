@@ -27,6 +27,8 @@ type School struct {
 	ParticipantsPC  int               `db:"participants_pc"`
 	ParticipantsHI  int               `db:"participants_hi"`
 	NonParticipants int               `db:"non_participants"`
+	TotalStaff      int               `db:"total_staff"`
+	TotalParents    int               `db:"total_parents"`
 	CreatedAt       time.Time         `db:"created_at"`
 }
 

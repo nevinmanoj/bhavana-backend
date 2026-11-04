@@ -16,6 +16,7 @@ func validFields() SchoolFields {
 		ContactEmail: "  Anu@Example.COM ", ContactPhone: "+91 98765 43210",
 		PrincipalName: "Mr P", PrincipalPhone: "098765-43211",
 		ParticipantsMC: intp(0), ParticipantsPC: intp(3), ParticipantsHI: intp(5), NonParticipants: intp(0),
+		TotalStaff: intp(2), TotalParents: intp(0),
 	}
 }
 
@@ -30,7 +31,7 @@ func TestSchoolFieldsNormalizeAndValidate(t *testing.T) {
 	if f.ContactEmail != "anu@example.com" || f.ContactPhone != "9876543210" || f.PrincipalPhone != "9876543211" || f.Name != "St Mary" {
 		t.Errorf("not normalized: %+v", f)
 	}
-	if s := f.toSchool(); s.ParticipantsMC != 0 || s.ParticipantsPC != 3 {
+	if s := f.toSchool(); s.ParticipantsMC != 0 || s.ParticipantsPC != 3 || s.TotalStaff != 2 || s.TotalParents != 0 {
 		t.Errorf("headcounts not mapped: %+v", s)
 	}
 
@@ -39,6 +40,10 @@ func TestSchoolFieldsNormalizeAndValidate(t *testing.T) {
 		"short contact phone":         func(f *SchoolFields) { f.ContactPhone = "12345" },
 		"landline-style number":       func(f *SchoolFields) { f.ContactPhone = "1234567890" },
 		"missing headcount":           func(f *SchoolFields) { f.NonParticipants = nil },
+		"missing staff count":         func(f *SchoolFields) { f.TotalStaff = nil },
+		"missing parent count":        func(f *SchoolFields) { f.TotalParents = nil },
+		"negative staff count":        func(f *SchoolFields) { f.TotalStaff = intp(-1) },
+		"negative parent count":       func(f *SchoolFields) { f.TotalParents = intp(-1) },
 		"negative headcount":          func(f *SchoolFields) { f.ParticipantsHI = intp(-1) },
 		"blank principal":             func(f *SchoolFields) { f.PrincipalName = "   " },
 		"bad email":                   func(f *SchoolFields) { f.ContactEmail = "nope" },

@@ -22,6 +22,8 @@ type SchoolFields struct {
 	ParticipantsPC  *int   `json:"participants_pc" validate:"required,gte=0"`
 	ParticipantsHI  *int   `json:"participants_hi" validate:"required,gte=0"`
 	NonParticipants *int   `json:"non_participants" validate:"required,gte=0"`
+	TotalStaff      *int   `json:"total_staff" validate:"required,gte=0"`
+	TotalParents    *int   `json:"total_parents" validate:"required,gte=0"`
 }
 
 // normalize trims text and canonicalizes email / phones. Handlers call it
@@ -50,6 +52,8 @@ func (f *SchoolFields) toSchool() school.School {
 		ParticipantsPC:  *f.ParticipantsPC,
 		ParticipantsHI:  *f.ParticipantsHI,
 		NonParticipants: *f.NonParticipants,
+		TotalStaff:      *f.TotalStaff,
+		TotalParents:    *f.TotalParents,
 	}
 }
 
@@ -123,6 +127,8 @@ type SchoolResponse struct {
 	ParticipantsPC  int               `json:"participants_pc"`
 	ParticipantsHI  int               `json:"participants_hi"`
 	NonParticipants int               `json:"non_participants"`
+	TotalStaff      int               `json:"total_staff"`
+	TotalParents    int               `json:"total_parents"`
 	CreatedAt       time.Time         `json:"created_at"`
 }
 
@@ -160,6 +166,8 @@ func ToSchoolResponse(s *school.School) SchoolResponse {
 		ParticipantsPC:  s.ParticipantsPC,
 		ParticipantsHI:  s.ParticipantsHI,
 		NonParticipants: s.NonParticipants,
+		TotalStaff:      s.TotalStaff,
+		TotalParents:    s.TotalParents,
 		CreatedAt:       s.CreatedAt,
 		SchoolAdmin:     s.SchoolAdmin,
 	}

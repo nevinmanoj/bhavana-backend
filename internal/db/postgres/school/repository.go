@@ -46,7 +46,9 @@ func (s *schoolRepository) CreateSchool(ctx context.Context, db sqlx.ExtContext,
 			participants_mc,
 			participants_pc,
 			participants_hi,
-			non_participants
+			non_participants,
+			total_staff,
+			total_parents
 		)
 		VALUES (
 			:school_admin,
@@ -61,7 +63,9 @@ func (s *schoolRepository) CreateSchool(ctx context.Context, db sqlx.ExtContext,
 			:participants_mc,
 			:participants_pc,
 			:participants_hi,
-			:non_participants
+			:non_participants,
+			:total_staff,
+			:total_parents
 		)
 		RETURNING id, created_at
 	`
@@ -156,7 +160,9 @@ func (s *schoolRepository) UpdateSchool(ctx context.Context, db sqlx.ExtContext,
 			participants_mc = :participants_mc,
 			participants_pc = :participants_pc,
 			participants_hi = :participants_hi,
-			non_participants = :non_participants
+			non_participants = :non_participants,
+			total_staff = :total_staff,
+			total_parents = :total_parents
 		WHERE id = :id
 	`
 	result, err := sqlx.NamedExecContext(ctx, db, query, schoolToUpdate)
