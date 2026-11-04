@@ -355,7 +355,7 @@ func (s *entryService) syncEntryMembers(ctx context.Context, tx *sqlx.Tx, entry 
 			if err != nil {
 				return ErrInternal
 			}
-			if event.Category != student.Category {
+			if !event.Category.AcceptsStudent(student.Category) {
 				return ErrCategoryMismatch
 			}
 			if entry.Entry.SchoolID != student.SchoolID {

@@ -13,7 +13,7 @@ type CreateEventRequest struct {
 	MaxMembers          int64                 `json:"max_members" validate:"required"`
 	MaxEntriesPerSchool int64                 `json:"max_entries_per_school" validate:"required"`
 	Status              core.EventStatus      `json:"status" validate:"required,event_status"`
-	Category          core.Category           `json:"category" validate:"required,category"`
+	Category          core.Category           `json:"category" validate:"required,event_category"`
 	Judges            []EventJudgeRequest     `json:"judges"`
 	Criteria          []EventCriteriaRequest  `json:"criteria"`
 	Standings         []EventStandingRequest  `json:"standings" validate:"required,min=1,dive"`

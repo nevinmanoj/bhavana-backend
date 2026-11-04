@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/jmoiron/sqlx"
+	"github.com/nevinmanoj/bhavana-backend/internal/core"
 	"github.com/nevinmanoj/bhavana-backend/internal/domain/result"
 )
 
@@ -123,8 +124,9 @@ func (r *resultRepository) GetLeaderboard(ctx context.Context, db sqlx.ExtContex
 	`
 	args := []any{}
 	if filter.Category != nil {
-		query += ` AND e.category = $1`
-		args = append(args, *filter.Category)
+		// Common events count towards every category's leaderboard.
+		query += ` AND e.category IN ($1, $2)`
+		args = append(args, *filter.Category, core.CategoryCommon)
 	}
 	query += ` ORDER BY sc.id, e.id, r.position`
 

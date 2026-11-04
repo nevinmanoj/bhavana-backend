@@ -12,7 +12,7 @@ func parseEventFilter(q url.Values) (event.EventFilter, *errmap.BadRequestError)
 	var f event.EventFilter
 
 	if v := q.Get("category"); v != "" {
-		category, err := core.ParseCategory(v)
+		category, err := core.ParseEventCategory(v)
 		if err != nil {
 			return f, &errmap.BadRequestError{
 				Param:  "category",

@@ -19,7 +19,7 @@ type School struct {
 	PrincipalPhone  string            `db:"principal_phone"`
 	ParticipantsMC  int               `db:"participants_mc"`
 	ParticipantsPC  int               `db:"participants_pc"`
-	ParticipantsHC  int               `db:"participants_hc"`
+	ParticipantsHI  int               `db:"participants_hi"`
 	NonParticipants int               `db:"non_participants"`
 	CreatedAt       time.Time         `db:"created_at"`
 }

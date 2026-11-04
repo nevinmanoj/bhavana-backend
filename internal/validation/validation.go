@@ -40,6 +40,15 @@ func NewValidator()*validator.Validate {
 		return category.IsValid()
 	})
 
+	//register event category validation (also allows the event-only COMMON)
+	v.RegisterValidation("event_category", func(fl validator.FieldLevel) bool {
+		category, ok := fl.Field().Interface().(core.Category)
+		if !ok {
+			return false
+		}
+		return category.IsValidForEvent()
+	})
+
 	//register school status validation
 	v.RegisterValidation("school_status", func(fl validator.FieldLevel) bool {
 		status, ok := fl.Field().Interface().(core.SchoolStatus)

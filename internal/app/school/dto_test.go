@@ -15,7 +15,7 @@ func validFields() SchoolFields {
 		Name: "  St Mary  ", Address: "Road 1", ContactName: "Anu",
 		ContactEmail: "  Anu@Example.COM ", ContactPhone: "+91 98765 43210",
 		PrincipalName: "Mr P", PrincipalPhone: "098765-43211",
-		ParticipantsMC: intp(0), ParticipantsPC: intp(3), ParticipantsHC: intp(5), NonParticipants: intp(0),
+		ParticipantsMC: intp(0), ParticipantsPC: intp(3), ParticipantsHI: intp(5), NonParticipants: intp(0),
 	}
 }
 
@@ -39,7 +39,7 @@ func TestSchoolFieldsNormalizeAndValidate(t *testing.T) {
 		"short contact phone":         func(f *SchoolFields) { f.ContactPhone = "12345" },
 		"landline-style number":       func(f *SchoolFields) { f.ContactPhone = "1234567890" },
 		"missing headcount":           func(f *SchoolFields) { f.NonParticipants = nil },
-		"negative headcount":          func(f *SchoolFields) { f.ParticipantsHC = intp(-1) },
+		"negative headcount":          func(f *SchoolFields) { f.ParticipantsHI = intp(-1) },
 		"blank principal":             func(f *SchoolFields) { f.PrincipalName = "   " },
 		"bad email":                   func(f *SchoolFields) { f.ContactEmail = "nope" },
 	}

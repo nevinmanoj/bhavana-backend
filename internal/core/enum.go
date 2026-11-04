@@ -56,33 +56,61 @@ func (s EventStatus) IsValid() bool {
 	return false
 }
 
-// Category enum for events.category and students.category
+// Category enum for events.category and students.category.
+//
+// CategoryCommon is event-only: a common event accepts students of every
+// category, but no student belongs to it. ParseCategory and IsValid therefore
+// reject it; events use ParseEventCategory and IsValidForEvent instead.
 type Category string
 
 const (
-	CategoryHC Category = "HC"
-	CategoryMC Category = "MC"
-	CategoryPC Category = "PC"
+	CategoryHI     Category = "HI"
+	CategoryMC     Category = "MC"
+	CategoryPC     Category = "PC"
+	CategoryCommon Category = "COMMON"
 )
 
 func ParseCategory(v string) (Category, error) {
 	switch strings.ToUpper(v) {
-	case "HC":
-		return CategoryHC, nil
+	case "HI":
+		return CategoryHI, nil
 	case "MC":
 		return CategoryMC, nil
 	case "PC":
 		return CategoryPC, nil
 	default:
-		return "", fmt.Errorf("Invalid category, must be ['HC','MC','PC'] ")
+		return "", fmt.Errorf("Invalid category, must be ['HI','MC','PC'] ")
 	}
 }
 func (c Category) IsValid() bool {
 	switch c {
-	case CategoryHC, CategoryMC, CategoryPC:
+	case CategoryHI, CategoryMC, CategoryPC:
 		return true
 	}
 	return false
+}
+
+// ParseEventCategory is ParseCategory plus the event-only CategoryCommon.
+func ParseEventCategory(v string) (Category, error) {
+	if strings.ToUpper(v) == string(CategoryCommon) {
+		return CategoryCommon, nil
+	}
+	c, err := ParseCategory(v)
+	if err != nil {
+		return "", fmt.Errorf("Invalid category, must be ['HI','MC','PC','COMMON'] ")
+	}
+	return c, nil
+}
+
+// IsValidForEvent reports whether c can be assigned to an event.
+func (c Category) IsValidForEvent() bool {
+	return c == CategoryCommon || c.IsValid()
+}
+
+// AcceptsStudent reports whether an event of category c can register a student
+// of the given category.
+func (c Category) AcceptsStudent(student Category) bool {
+	return c == CategoryCommon || c == student
 }
 
 // SchoolStatus enum for schools.status

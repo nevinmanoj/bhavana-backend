@@ -20,7 +20,7 @@ type SchoolFields struct {
 	PrincipalPhone  string `json:"principal_phone" validate:"required,mobile"`
 	ParticipantsMC  *int   `json:"participants_mc" validate:"required,gte=0"`
 	ParticipantsPC  *int   `json:"participants_pc" validate:"required,gte=0"`
-	ParticipantsHC  *int   `json:"participants_hc" validate:"required,gte=0"`
+	ParticipantsHI  *int   `json:"participants_hi" validate:"required,gte=0"`
 	NonParticipants *int   `json:"non_participants" validate:"required,gte=0"`
 }
 
@@ -48,7 +48,7 @@ func (f *SchoolFields) toSchool() school.School {
 		PrincipalPhone:  f.PrincipalPhone,
 		ParticipantsMC:  *f.ParticipantsMC,
 		ParticipantsPC:  *f.ParticipantsPC,
-		ParticipantsHC:  *f.ParticipantsHC,
+		ParticipantsHI:  *f.ParticipantsHI,
 		NonParticipants: *f.NonParticipants,
 	}
 }
@@ -112,7 +112,7 @@ type SchoolResponse struct {
 	PrincipalPhone  string            `json:"principal_phone"`
 	ParticipantsMC  int               `json:"participants_mc"`
 	ParticipantsPC  int               `json:"participants_pc"`
-	ParticipantsHC  int               `json:"participants_hc"`
+	ParticipantsHI  int               `json:"participants_hi"`
 	NonParticipants int               `json:"non_participants"`
 	CreatedAt       time.Time         `json:"created_at"`
 }
@@ -149,7 +149,7 @@ func ToSchoolResponse(s *school.School) SchoolResponse {
 		PrincipalPhone:  s.PrincipalPhone,
 		ParticipantsMC:  s.ParticipantsMC,
 		ParticipantsPC:  s.ParticipantsPC,
-		ParticipantsHC:  s.ParticipantsHC,
+		ParticipantsHI:  s.ParticipantsHI,
 		NonParticipants: s.NonParticipants,
 		CreatedAt:       s.CreatedAt,
 		SchoolAdmin:     s.SchoolAdmin,

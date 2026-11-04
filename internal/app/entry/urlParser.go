@@ -14,7 +14,7 @@ func parseEntryFilter(q url.Values) (entry.EntryFilter, *errmap.BadRequestError)
 	var f entry.EntryFilter
 
 	if v := q.Get("category"); v != "" {
-		category, err := core.ParseCategory(v)
+		category, err := core.ParseEventCategory(v)
 		if err != nil {
 			return f, &errmap.BadRequestError{
 				Param:  "category",
