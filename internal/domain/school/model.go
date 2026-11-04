@@ -6,6 +6,12 @@ import (
 	"github.com/nevinmanoj/bhavana-backend/internal/core"
 )
 
+// Settings is the single row of admin-controlled switches.
+type Settings struct {
+	SchoolRegistrationOpen  bool `db:"school_registration_open"`
+	StudentRegistrationOpen bool `db:"student_registration_open"`
+}
+
 type School struct {
 	ID              int64             `db:"id"`
 	SchoolAdmin     *int64            `db:"school_admin"`

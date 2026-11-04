@@ -81,12 +81,21 @@ type SendLoginDetailsRequest struct {
 	Email string `json:"email" validate:"required,email"`
 }
 
-type RegistrationOpenRequest struct {
-	Open *bool `json:"open" validate:"required"`
+type SettingsRequest struct {
+	SchoolRegistrationOpen  *bool `json:"school_registration_open" validate:"required"`
+	StudentRegistrationOpen *bool `json:"student_registration_open" validate:"required"`
 }
 
-type RegistrationOpenResponse struct {
-	Open bool `json:"open"`
+type SettingsResponse struct {
+	SchoolRegistrationOpen  bool `json:"school_registration_open"`
+	StudentRegistrationOpen bool `json:"student_registration_open"`
+}
+
+func ToSettingsResponse(s *school.Settings) SettingsResponse {
+	return SettingsResponse{
+		SchoolRegistrationOpen:  s.SchoolRegistrationOpen,
+		StudentRegistrationOpen: s.StudentRegistrationOpen,
+	}
 }
 
 type CreateStudentRequest struct {

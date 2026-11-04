@@ -37,4 +37,7 @@ const (
 
 	//results / leaderboard
 	PermViewResult Permission = "result:view"
+
+	//settings
+	PermUpdateSettings Permission = "settings:update"
 )

@@ -168,16 +168,21 @@ func Start() error {
 		router.With(middleware.RequirePermission(rbac.PermViewResult)).Get("/{eventId}/results/readiness", resultHandler.GetReadiness)
 	})
 
+	//Settings routes
+	r.Route("/settings", func(router chi.Router) {
+		// public: /register reads this before anyone has signed in
+		router.Get("/", schoolHandler.GetSettings)
+		router.With(authMiddleware, middleware.InjectScope, middleware.RequirePermission(rbac.PermUpdateSettings)).Put("/", schoolHandler.UpdateSettings)
+	})
+
 	//School and student routes
 	r.Route("/schools", func(router chi.Router) {
 		// public
 		router.Post("/register", schoolHandler.RegisterSchool)
-		router.Get("/registration", schoolHandler.GetRegistrationOpen)
 
 		// protected
 		router.Group(func(groupRouter chi.Router) {
 			groupRouter.Use(authMiddleware, middleware.InjectScope)
-			groupRouter.With(middleware.RequirePermission(rbac.PermUpdateSchool)).Put("/registration", schoolHandler.SetRegistrationOpen)
 			groupRouter.With(middleware.RequirePermission(rbac.PermUpdateSchool)).Put("/{schoolId}/status", schoolHandler.UpdateSchoolStatus)
 			groupRouter.With(middleware.RequirePermission(rbac.PermUpdateSchool)).Post("/{schoolId}/login-details", schoolHandler.SendLoginDetails)
 			groupRouter.With(middleware.RequirePermission(rbac.PermViewSchool)).Get("/", schoolHandler.GetSchools)

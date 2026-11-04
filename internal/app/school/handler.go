@@ -536,23 +536,23 @@ func (h *SchoolHandler) SendLoginDetails(w http.ResponseWriter, r *http.Request)
 	})
 }
 
-func (h *SchoolHandler) GetRegistrationOpen(w http.ResponseWriter, r *http.Request) {
+func (h *SchoolHandler) GetSettings(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	open, err := h.service.GetRegistrationOpen(r.Context())
+	settings, err := h.service.GetSettings(r.Context())
 	if err != nil {
 		json.NewEncoder(w).Encode(GetSchoolDomainErrorResponse(err))
 		return
 	}
-	json.NewEncoder(w).Encode(GetResponsePage[RegistrationOpenResponse]{
+	json.NewEncoder(w).Encode(GetResponsePage[SettingsResponse]{
 		StatusCode: 200,
-		Message:    "Registration status fetched successfully",
-		Data:       RegistrationOpenResponse{Open: open},
+		Message:    "Settings fetched successfully",
+		Data:       ToSettingsResponse(settings),
 	})
 }
 
-func (h *SchoolHandler) SetRegistrationOpen(w http.ResponseWriter, r *http.Request) {
+func (h *SchoolHandler) UpdateSettings(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	var req RegistrationOpenRequest
+	var req SettingsRequest
 	dec := json.NewDecoder(r.Body)
 	dec.DisallowUnknownFields()
 	if err := dec.Decode(&req); err != nil {
@@ -569,13 +569,17 @@ func (h *SchoolHandler) SetRegistrationOpen(w http.ResponseWriter, r *http.Reque
 		})
 		return
 	}
-	if err := h.service.SetRegistrationOpen(r.Context(), *req.Open); err != nil {
+	settings := school.Settings{
+		SchoolRegistrationOpen:  *req.SchoolRegistrationOpen,
+		StudentRegistrationOpen: *req.StudentRegistrationOpen,
+	}
+	if err := h.service.UpdateSettings(r.Context(), &settings); err != nil {
 		json.NewEncoder(w).Encode(GetSchoolDomainErrorResponse(err))
 		return
 	}
-	json.NewEncoder(w).Encode(GetResponsePage[RegistrationOpenResponse]{
+	json.NewEncoder(w).Encode(GetResponsePage[SettingsResponse]{
 		StatusCode: 200,
-		Message:    "Registration status updated successfully",
-		Data:       RegistrationOpenResponse{Open: *req.Open},
+		Message:    "Settings updated successfully",
+		Data:       ToSettingsResponse(&settings),
 	})
 }

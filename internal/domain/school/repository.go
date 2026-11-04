@@ -26,7 +26,7 @@ type SchoolWriteRepository interface {
 	LockSchool(ctx context.Context, db sqlx.ExtContext, id int64) (*LockedSchool, error)
 	UpdateContactEmail(ctx context.Context, db sqlx.ExtContext, id int64, email string) error
 	SchoolExists(ctx context.Context, db sqlx.ExtContext, schoolID int64) (bool, error)
-	SetRegistrationOpen(ctx context.Context, db sqlx.ExtContext, open bool) error
+	UpdateSettings(ctx context.Context, db sqlx.ExtContext, settings *Settings) error
 
 	CreateStudent(ctx context.Context, db sqlx.ExtContext, StudentToCreate *Student) error
 	UpdateStudent(ctx context.Context, db sqlx.ExtContext, StudentToUpdate *Student) error
@@ -35,7 +35,7 @@ type SchoolWriteRepository interface {
 type SchoolReadRepository interface {
 	GetSchoolByID(ctx context.Context, db sqlx.ExtContext, id int64) (*School, error)
 	GetAllSchools(ctx context.Context, db sqlx.ExtContext) ([]School, error)
-	IsRegistrationOpen(ctx context.Context, db sqlx.ExtContext) (bool, error)
+	GetSettings(ctx context.Context, db sqlx.ExtContext) (*Settings, error)
 
 	GetAllStudents(ctx context.Context, db sqlx.ExtContext, filter StudentFilter) ([]Student, error)
 	// CountStudents returns the total row count for filter, ignoring

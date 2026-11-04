@@ -4,9 +4,31 @@ import (
 	"testing"
 
 	"github.com/nevinmanoj/bhavana-backend/internal/core"
+	"github.com/nevinmanoj/bhavana-backend/internal/rbac"
 )
 
 func id(n int64) *int64 { return &n }
+
+func TestStudentsLocked(t *testing.T) {
+	tests := []struct {
+		name string
+		role rbac.UserRole
+		open bool
+		want bool
+	}{
+		{"school admin, closed", rbac.UserRoleSchoolAdmin, false, true},
+		{"school admin, open", rbac.UserRoleSchoolAdmin, true, false},
+		{"admin, closed", rbac.UserRoleAdmin, false, false},
+		{"admin, open", rbac.UserRoleAdmin, true, false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := studentsLocked(tt.role, &Settings{StudentRegistrationOpen: tt.open}); got != tt.want {
+				t.Errorf("studentsLocked() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
 
 // While in review, a contact email edit is also the admin's login change, so
 // acceptance emails the corrected address. Never otherwise.

@@ -37,6 +37,11 @@ func GetSchoolDomainErrorResponse(err error) ErrorResponse {
 			StatusCode: 403,
 			Message:    school.ErrRegistrationClosed.Error(),
 		}
+	case school.ErrStudentRegistrationClosed:
+		return ErrorResponse{
+			StatusCode: 403,
+			Message:    school.ErrStudentRegistrationClosed.Error(),
+		}
 	case school.ErrMailFailed:
 		return ErrorResponse{
 			StatusCode: 502,

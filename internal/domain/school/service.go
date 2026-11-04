@@ -12,6 +12,7 @@ import (
 	"github.com/nevinmanoj/bhavana-backend/internal/domain/access"
 	"github.com/nevinmanoj/bhavana-backend/internal/domain/user"
 	"github.com/nevinmanoj/bhavana-backend/internal/mail"
+	"github.com/nevinmanoj/bhavana-backend/internal/middleware"
 	"github.com/nevinmanoj/bhavana-backend/internal/rbac"
 	"github.com/nevinmanoj/bhavana-backend/internal/util"
 )
@@ -40,8 +41,8 @@ type SchoolService interface {
 	// SendLoginDetails emails the accepted school's admin a new password,
 	// first changing their login email if email differs.
 	SendLoginDetails(ctx context.Context, schoolID int64, email string) error
-	GetRegistrationOpen(ctx context.Context) (bool, error)
-	SetRegistrationOpen(ctx context.Context, open bool) error
+	GetSettings(ctx context.Context) (*Settings, error)
+	UpdateSettings(ctx context.Context, settings *Settings) error
 	UpdateSchool(ctx context.Context, school *School) error
 	DeleteSchool(ctx context.Context, id int64) error
 
@@ -163,11 +164,11 @@ func (s *schoolService) RegisterSchool(ctx context.Context, school *School, admi
 	}
 	defer tx.Rollback()
 
-	open, err := s.repo.IsRegistrationOpen(ctx, tx)
+	settings, err := s.repo.GetSettings(ctx, tx)
 	if err != nil {
 		return ErrInternal
 	}
-	if !open {
+	if !settings.SchoolRegistrationOpen {
 		return ErrRegistrationClosed
 	}
 
@@ -317,11 +318,28 @@ func (s *schoolService) sendInBackground(msg mail.Message) {
 		}
 	}()
 }
-func (s *schoolService) GetRegistrationOpen(ctx context.Context) (bool, error) {
-	return s.repo.IsRegistrationOpen(ctx, s.db)
+func (s *schoolService) GetSettings(ctx context.Context) (*Settings, error) {
+	return s.repo.GetSettings(ctx, s.db)
 }
-func (s *schoolService) SetRegistrationOpen(ctx context.Context, open bool) error {
-	return s.repo.SetRegistrationOpen(ctx, s.db, open)
+func (s *schoolService) UpdateSettings(ctx context.Context, settings *Settings) error {
+	return s.repo.UpdateSettings(ctx, s.db, settings)
+}
+
+// studentsLocked: while student registration is closed, only admins can change
+// students. School admins can still view the ones they already have.
+func studentsLocked(role rbac.UserRole, settings *Settings) bool {
+	return role != rbac.UserRoleAdmin && !settings.StudentRegistrationOpen
+}
+
+func (s *schoolService) checkStudentsUnlocked(ctx context.Context) error {
+	settings, err := s.repo.GetSettings(ctx, s.db)
+	if err != nil {
+		return ErrInternal
+	}
+	if studentsLocked(ctx.Value(middleware.ContextUserRole).(rbac.UserRole), settings) {
+		return ErrStudentRegistrationClosed
+	}
+	return nil
 }
 
 // students
@@ -344,6 +362,9 @@ func (s *schoolService) UpdateStudent(ctx context.Context, student *Student) err
 	if !access {
 		return ErrUnauthorized
 	}
+	if err := s.checkStudentsUnlocked(ctx); err != nil {
+		return err
+	}
 	return s.repo.UpdateStudent(ctx, s.db, student)
 }
 func (s *schoolService) CreateStudent(ctx context.Context, student *Student) error {
@@ -353,6 +374,9 @@ func (s *schoolService) CreateStudent(ctx context.Context, student *Student) err
 	}
 	if !access {
 		return ErrUnauthorized
+	}
+	if err := s.checkStudentsUnlocked(ctx); err != nil {
+		return err
 	}
 	exists, err := s.repo.SchoolExists(ctx, s.db, student.SchoolID)
 	if err != nil {
@@ -370,6 +394,9 @@ func (s *schoolService) DeleteStudent(ctx context.Context, id int64) error {
 	}
 	if !access {
 		return ErrUnauthorized
+	}
+	if err := s.checkStudentsUnlocked(ctx); err != nil {
+		return err
 	}
 	return s.repo.DeleteStudent(ctx, s.db, id)
 }
