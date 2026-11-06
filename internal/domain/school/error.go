@@ -17,6 +17,6 @@ var (
 	ErrMailFailed                  = errors.New("Couldn't send the email, so nothing was changed. Please try again.")
 	ErrMailRateLimited             = errors.New("Too many emails were sent recently. Nothing was changed. Try again in a few minutes.")
 	ErrNoSchoolAdmin               = errors.New("This school has no school admin account to send login details to.")
-	ErrSchoolInReview              = errors.New("Accept the registration first; that sends the login details.")
+	ErrSchoolInReview              = errors.New("Accept the registration first, then send login details.")
 	ErrContactEmailLocked          = errors.New("This school's email is also its sign-in email. Use Send login details to change it.")
 )

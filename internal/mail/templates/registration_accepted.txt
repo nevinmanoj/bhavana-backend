@@ -1,0 +1,8 @@
+Hello {{.Name}},
+
+The registration for {{.SchoolName}} has been accepted. Sign in to manage your school.
+
+Sign-in page: {{.LoginURL}}
+Email: {{.Email}}
+
+Use the password from the email we sent when you registered. If you can't find it, use "Forgot password?" on the sign-in page.

@@ -5,6 +5,7 @@ import (
 
 	"github.com/nevinmanoj/bhavana-backend/internal/core"
 	"github.com/nevinmanoj/bhavana-backend/internal/domain/event"
+	"github.com/nevinmanoj/bhavana-backend/internal/domain/school"
 	"github.com/nevinmanoj/bhavana-backend/internal/rbac"
 )
 
@@ -83,6 +84,27 @@ func TestValidateBatch(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := validateBatch(tt.event, tt.entries); got != tt.want {
 				t.Errorf("validateBatch() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestEntriesLocked(t *testing.T) {
+	tests := []struct {
+		name string
+		role rbac.UserRole
+		open bool
+		want bool
+	}{
+		{"school admin, closed", rbac.UserRoleSchoolAdmin, false, true},
+		{"school admin, open", rbac.UserRoleSchoolAdmin, true, false},
+		{"admin, closed", rbac.UserRoleAdmin, false, false},
+		{"admin, open", rbac.UserRoleAdmin, true, false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := entriesLocked(tt.role, &school.Settings{EntryRegistrationOpen: tt.open}); got != tt.want {
+				t.Errorf("entriesLocked() = %v, want %v", got, tt.want)
 			}
 		})
 	}

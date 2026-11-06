@@ -11,7 +11,7 @@ import (
 
 // The wording of every email lives in templates/. Each email is a .html and a
 // .txt file with the same name; a change to one usually belongs in the other.
-// layout.html wraps every HTML email, and login_details is shared by the two
+// layout.html wraps every HTML email, and login_details is shared by the
 // emails that carry a password.
 //
 // The files are compiled into the binary, because the runtime image holds only
@@ -36,11 +36,24 @@ type emailData struct {
 	ResetLink  string
 }
 
-func RegistrationReceivedEmail(email, name, schoolName string) Message {
+func RegistrationReceivedEmail(appURL, email, name, schoolName, password string) Message {
 	return message("registration_received", "Bhavana: we received your school registration", emailData{
 		Name:       name,
 		Email:      email,
 		SchoolName: schoolName,
+		Password:   password,
+		LoginURL:   baseURL(appURL) + "/login",
+	})
+}
+
+// RegistrationAcceptedEmail is for an admin who already has a password.
+// AcceptedLoginEmail is the one for an admin who still needs one.
+func RegistrationAcceptedEmail(appURL, email, name, schoolName string) Message {
+	return message("registration_accepted", "Bhavana: your school registration is accepted", emailData{
+		Name:       name,
+		Email:      email,
+		SchoolName: schoolName,
+		LoginURL:   baseURL(appURL) + "/login",
 	})
 }
 

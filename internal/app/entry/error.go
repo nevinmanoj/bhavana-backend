@@ -63,6 +63,11 @@ func GetEntryDomainErrorResponse(err error) ErrorResponse {
 			StatusCode: 409,
 			Message:    entry.ErrRegistrationNotOpen.Error(),
 		}
+	case entry.ErrEntryRegistrationClosed:
+		return ErrorResponse{
+			StatusCode: 403,
+			Message:    entry.ErrEntryRegistrationClosed.Error(),
+		}
 	case entry.ErrChestNumberConflict:
 		return ErrorResponse{
 			StatusCode: 409,

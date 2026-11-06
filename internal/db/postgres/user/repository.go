@@ -43,7 +43,7 @@ func (r *userRepository) CreateUser(ctx context.Context, db sqlx.ExtContext, pas
 		return user.ErrAlreadyExists
 	}
 	// "" means "no password yet": only RegisterSchool passes it, and the
-	// account can't sign in until acceptance emails it a generated one.
+	// account can't sign in until it is emailed a generated one.
 	// CreateUserRequest requires min=6, so the Users page can't create one.
 	userToCreate.PasswordHash = ""
 	if password != "" {

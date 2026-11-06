@@ -1,7 +1,8 @@
 Hello {{.Name}},
 
-We've received the registration for {{.SchoolName}}. An admin will review it.
+We've received the registration for {{.SchoolName}}. An admin will review it, and we'll email you once it's accepted.
 
-Once it's accepted, we'll email your sign-in password to this address. You don't need to do anything now.
+You can sign in now to see your school's details, using the details below. You can add students once your registration is accepted and student registration is open.
 
+{{template "login_details.txt" .}}
 If you didn't register this school, you can ignore this email.

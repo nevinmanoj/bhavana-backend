@@ -7,6 +7,7 @@ import (
 
 func TestLoginEmails(t *testing.T) {
 	for _, m := range []Message{
+		RegistrationReceivedEmail("https://app.example/", "anu@example.com", "Anu", "St Mary's", "abcd2345efgh6789jkmn"),
 		AcceptedLoginEmail("https://app.example/", "anu@example.com", "Anu", "St Mary's", "abcd2345efgh6789jkmn"),
 		NewPasswordEmail("https://app.example/", "anu@example.com", "Anu", "St Mary's", "abcd2345efgh6789jkmn"),
 	} {
@@ -23,6 +24,29 @@ func TestLoginEmails(t *testing.T) {
 	}
 }
 
+// A school in review can sign in but only look, so the email has to say so.
+func TestRegistrationEmailExplainsWhatWorksDuringReview(t *testing.T) {
+	m := RegistrationReceivedEmail("https://app.example", "anu@example.com", "Anu", "St Mary's", "pw")
+	for _, part := range []string{m.PlainText, m.HTML} {
+		for _, want := range []string{"You can sign in now", "add students once your registration is accepted and student registration is open"} {
+			if !strings.Contains(part, want) {
+				t.Errorf("missing %q: %s", want, part)
+			}
+		}
+	}
+}
+
+func TestRegistrationAcceptedEmail(t *testing.T) {
+	m := RegistrationAcceptedEmail("https://app.example/", "anu@example.com", "Anu", "St Mary's")
+	for _, part := range []string{m.PlainText, m.HTML} {
+		for _, want := range []string{"anu@example.com", "https://app.example/login", "Forgot password?"} {
+			if !strings.Contains(part, want) {
+				t.Errorf("missing %q", want)
+			}
+		}
+	}
+}
+
 func TestPasswordResetEmail(t *testing.T) {
 	m := PasswordResetEmail("https://app.example", "anu@example.com", "Anu", "tok-en_123")
 	want := "https://app.example/reset-password?token=tok-en_123"
@@ -33,7 +57,8 @@ func TestPasswordResetEmail(t *testing.T) {
 
 func TestEveryEmailRenders(t *testing.T) {
 	for _, m := range []Message{
-		RegistrationReceivedEmail("anu@example.com", "Anu", "St Mary's"),
+		RegistrationReceivedEmail("https://app.example", "anu@example.com", "Anu", "St Mary's", "pw"),
+		RegistrationAcceptedEmail("https://app.example", "anu@example.com", "Anu", "St Mary's"),
 		AcceptedLoginEmail("https://app.example", "anu@example.com", "Anu", "St Mary's", "pw"),
 		NewPasswordEmail("https://app.example", "anu@example.com", "Anu", "St Mary's", "pw"),
 		PasswordResetEmail("https://app.example", "anu@example.com", "Anu", "t"),
@@ -64,7 +89,8 @@ func TestEveryEmailRenders(t *testing.T) {
 func TestTemplatesEscapeHTML(t *testing.T) {
 	school, name := `<b>Evil</b> & Co`, `<script>x</script>`
 	for _, m := range []Message{
-		RegistrationReceivedEmail("a@b.c", name, school),
+		RegistrationReceivedEmail("https://app.example", "a@b.c", name, school, "pw"),
+		RegistrationAcceptedEmail("https://app.example", "a@b.c", name, school),
 		AcceptedLoginEmail("https://app.example", "a@b.c", name, school, "pw"),
 		NewPasswordEmail("https://app.example", "a@b.c", name, school, "pw"),
 		PasswordResetEmail("https://app.example", "a@b.c", name, "t"),
@@ -73,7 +99,7 @@ func TestTemplatesEscapeHTML(t *testing.T) {
 			t.Errorf("%q: unescaped name in HTML", m.Subject)
 		}
 	}
-	if m := RegistrationReceivedEmail("a@b.c", name, school); !strings.Contains(m.PlainText, school) {
+	if m := RegistrationReceivedEmail("https://app.example", "a@b.c", name, school, "pw"); !strings.Contains(m.PlainText, school) {
 		t.Error("plain text should carry the name as typed")
 	}
 }

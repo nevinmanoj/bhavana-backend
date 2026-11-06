@@ -109,6 +109,24 @@ func entryRegistrationAllowed(role rbac.UserRole, status core.EventStatus) bool 
 	return status == core.EventStatusRegistrationOpen
 }
 
+// entriesLocked: while entry registration is closed, only admins can change
+// entries. School admins can still view the ones they already have.
+func entriesLocked(role rbac.UserRole, settings *school.Settings) bool {
+	return role != rbac.UserRoleAdmin && !settings.EntryRegistrationOpen
+}
+
+func (s *entryService) checkEntriesUnlocked(ctx context.Context) error {
+	settings, err := s.schoolRepo.GetSettings(ctx, s.db)
+	if err != nil {
+		return ErrInternal
+	}
+	role, _ := ctx.Value(middleware.ContextUserRole).(rbac.UserRole)
+	if entriesLocked(role, settings) {
+		return ErrEntryRegistrationClosed
+	}
+	return nil
+}
+
 // validateBatch applies the event's own rules to a batch before any of it is
 // written. Keeping it pure and separate means the whole batch is rejected up
 // front rather than half-inserted and rolled back.
@@ -157,6 +175,9 @@ func (s *entryService) CreateEntries(ctx context.Context, eventID, schoolID int6
 	}
 	if !access {
 		return ErrUnauthorized
+	}
+	if err := s.checkEntriesUnlocked(ctx); err != nil {
+		return err
 	}
 
 	//get event associated to check constraints
@@ -216,6 +237,9 @@ func (s *entryService) UpdateEntry(ctx context.Context, entryToUpdate *EntryFull
 	if !access {
 		return ErrUnauthorized
 	}
+	if err := s.checkEntriesUnlocked(ctx); err != nil {
+		return err
+	}
 	tx, err := s.db.BeginTxx(ctx, nil)
 	if err != nil {
 		return ErrInternal
@@ -272,6 +296,9 @@ func (s *entryService) DeleteEntry(ctx context.Context, entryID int64) error {
 	}
 	if !access {
 		return ErrUnauthorized
+	}
+	if err := s.checkEntriesUnlocked(ctx); err != nil {
+		return err
 	}
 
 	entryToDelete, err := s.repo.GetEntryByID(ctx, s.db, entryID)

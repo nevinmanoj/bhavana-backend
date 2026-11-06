@@ -85,18 +85,6 @@ func (s *userService) LoginUser(ctx context.Context, email, password string) (st
 		return "", nil, ErrInvalidCredentials
 	}
 
-	// A school admin whose school was moved back to review can't sign in.
-	// Checked after the password so this path never leaks registration state.
-	if user.Role == rbac.UserRoleSchoolAdmin {
-		status, err := s.repo.GetSchoolStatusForAdmin(ctx, s.db, user.ID)
-		if err != nil {
-			return "", nil, ErrInternal
-		}
-		if status != nil && *status == core.SchoolStatusInReview {
-			return "", nil, ErrRegistrationUnderReview
-		}
-	}
-
 	// create and issue JWT token
 	token, err := auth.GenerateToken(user.Role, user.ID, user.Email, s.jwtSecret)
 	if err != nil {

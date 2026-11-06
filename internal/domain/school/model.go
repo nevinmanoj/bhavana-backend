@@ -10,6 +10,7 @@ import (
 type Settings struct {
 	SchoolRegistrationOpen  bool `db:"school_registration_open"`
 	StudentRegistrationOpen bool `db:"student_registration_open"`
+	EntryRegistrationOpen   bool `db:"entry_registration_open"`
 }
 
 type School struct {

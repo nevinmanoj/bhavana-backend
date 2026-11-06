@@ -572,6 +572,7 @@ func (h *SchoolHandler) UpdateSettings(w http.ResponseWriter, r *http.Request) {
 	settings := school.Settings{
 		SchoolRegistrationOpen:  *req.SchoolRegistrationOpen,
 		StudentRegistrationOpen: *req.StudentRegistrationOpen,
+		EntryRegistrationOpen:   *req.EntryRegistrationOpen,
 	}
 	if err := h.service.UpdateSettings(r.Context(), &settings); err != nil {
 		json.NewEncoder(w).Encode(GetSchoolDomainErrorResponse(err))

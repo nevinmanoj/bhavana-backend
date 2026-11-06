@@ -14,13 +14,15 @@ func NewAccessRepository() access.AccessRepository {
 	return &accessRepository{}
 }
 
+// The student, school and entry checks guard writes only, so they also need the
+// school to be accepted: a school in review can sign in but only look.
 func (r *accessRepository) HasStudentAccess(ctx context.Context, db sqlx.ExtContext, studentID, userID int64) (bool, error) {
 	const q = `
 		SELECT EXISTS (
 			SELECT 1
 			FROM students s
 			JOIN schools sc ON s.school_id = sc.id
-			WHERE s.id = $1 AND sc.school_admin = $2
+			WHERE s.id = $1 AND sc.school_admin = $2 AND sc.status = 'accepted'
 		)
 	`
 
@@ -32,7 +34,7 @@ func (r *accessRepository) HasSchoolAccess(ctx context.Context, db sqlx.ExtConte
 		SELECT EXISTS (
 			SELECT 1
 			FROM schools sc
-			WHERE sc.id = $1 AND sc.school_admin = $2
+			WHERE sc.id = $1 AND sc.school_admin = $2 AND sc.status = 'accepted'
 		)
 	`
 
@@ -57,7 +59,7 @@ func (r *accessRepository) HasEntryAccess(ctx context.Context, db sqlx.ExtContex
 			SELECT 1
 			FROM entries t
 			JOIN schools sc ON t.school_id = sc.id
-			WHERE t.id = $1 AND sc.school_admin = $2
+			WHERE t.id = $1 AND sc.school_admin = $2 AND sc.status = 'accepted'
 		)
 	`
 	args := []any{entryID, userID}

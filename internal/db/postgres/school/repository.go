@@ -377,7 +377,7 @@ func (s *schoolRepository) UpdateContactEmail(ctx context.Context, db sqlx.ExtCo
 
 func (s *schoolRepository) GetSettings(ctx context.Context, db sqlx.ExtContext) (*school.Settings, error) {
 	var settings school.Settings
-	query := `SELECT school_registration_open, student_registration_open FROM app_settings`
+	query := `SELECT school_registration_open, student_registration_open, entry_registration_open FROM app_settings`
 	if err := sqlx.GetContext(ctx, db, &settings, query); err != nil {
 		return nil, err
 	}
@@ -387,7 +387,7 @@ func (s *schoolRepository) GetSettings(ctx context.Context, db sqlx.ExtContext) 
 func (s *schoolRepository) UpdateSettings(ctx context.Context, db sqlx.ExtContext, settings *school.Settings) error {
 	_, err := db.ExecContext(ctx, `
 		UPDATE app_settings
-		SET school_registration_open = $1, student_registration_open = $2, updated_at = NOW()
-	`, settings.SchoolRegistrationOpen, settings.StudentRegistrationOpen)
+		SET school_registration_open = $1, student_registration_open = $2, entry_registration_open = $3, updated_at = NOW()
+	`, settings.SchoolRegistrationOpen, settings.StudentRegistrationOpen, settings.EntryRegistrationOpen)
 	return err
 }

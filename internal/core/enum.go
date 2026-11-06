@@ -118,7 +118,8 @@ func (c Category) AcceptsStudent(student Category) bool {
 //	in_review <-> accepted
 //
 // Schools registered through the public endpoint start in_review and their
-// school admin cannot sign in until an admin accepts them.
+// school admin can sign in and view the school, but can't add or change students
+// or entries until an admin accepts them.
 type SchoolStatus string
 
 const (

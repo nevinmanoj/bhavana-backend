@@ -88,17 +88,20 @@ type SendLoginDetailsRequest struct {
 type SettingsRequest struct {
 	SchoolRegistrationOpen  *bool `json:"school_registration_open" validate:"required"`
 	StudentRegistrationOpen *bool `json:"student_registration_open" validate:"required"`
+	EntryRegistrationOpen   *bool `json:"entry_registration_open" validate:"required"`
 }
 
 type SettingsResponse struct {
 	SchoolRegistrationOpen  bool `json:"school_registration_open"`
 	StudentRegistrationOpen bool `json:"student_registration_open"`
+	EntryRegistrationOpen   bool `json:"entry_registration_open"`
 }
 
 func ToSettingsResponse(s *school.Settings) SettingsResponse {
 	return SettingsResponse{
 		SchoolRegistrationOpen:  s.SchoolRegistrationOpen,
 		StudentRegistrationOpen: s.StudentRegistrationOpen,
+		EntryRegistrationOpen:   s.EntryRegistrationOpen,
 	}
 }
 

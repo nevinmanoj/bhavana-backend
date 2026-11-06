@@ -32,11 +32,11 @@ type SchoolService interface {
 	GetAllSchools(ctx context.Context) ([]School, error)
 	CreateSchool(ctx context.Context, school *School) error
 	// RegisterSchool is the public sign-up: it creates the school admin user
-	// (with no password yet) and the school (in_review) in one transaction, if
-	// registration is open.
+	// and the school (in_review) in one transaction, if registration is open.
+	// It then emails the admin a generated password in the background.
 	RegisterSchool(ctx context.Context, school *School, admin *user.User) error
-	// UpdateSchoolStatus emails the school admin a generated password when an
-	// in-review school is accepted and the admin has none yet.
+	// UpdateSchoolStatus tells the school admin when an in-review school is
+	// accepted, emailing a generated password if the admin has none yet.
 	UpdateSchoolStatus(ctx context.Context, id int64, status core.SchoolStatus) (LoginEmail, error)
 	// SendLoginDetails emails the accepted school's admin a new password,
 	// first changing their login email if email differs.
@@ -101,6 +101,14 @@ func (s *schoolService) UpdateSchool(ctx context.Context, school *School) error 
 			if err == user.ErrAlreadyExists {
 				return ErrEmailTaken
 			}
+			return ErrInternal
+		}
+		// The password went to the old address, which may not be theirs.
+		// Clearing it makes acceptance email a new one to the corrected address.
+		if err := s.userRepo.SetPasswordHash(ctx, tx, *locked.SchoolAdmin, ""); err != nil {
+			return ErrInternal
+		}
+		if err := s.userRepo.InvalidateResetTokens(ctx, tx, *locked.SchoolAdmin); err != nil {
 			return ErrInternal
 		}
 	}
@@ -173,7 +181,7 @@ func (s *schoolService) RegisterSchool(ctx context.Context, school *School, admi
 	}
 
 	admin.Role = rbac.UserRoleSchoolAdmin
-	// no password yet: accepting the school emails a generated one
+	// no password yet: sendRegistrationLogin issues one after the commit
 	if err := s.userRepo.CreateUser(ctx, tx, "", admin); err != nil {
 		if err == user.ErrAlreadyExists {
 			return ErrEmailTaken
@@ -189,9 +197,50 @@ func (s *schoolService) RegisterSchool(ctx context.Context, school *School, admi
 	if err := tx.Commit(); err != nil {
 		return ErrInternal
 	}
-	// best effort: the registration is saved whether or not this arrives
-	s.sendInBackground(mail.RegistrationReceivedEmail(admin.Email, admin.Name, school.Name))
+	s.sendRegistrationLogin(school.ID)
 	return nil
+}
+
+// sendRegistrationLogin is best effort: the registration is saved whether or
+// not this works. If it fails the admin simply has no password yet, and
+// accepting the school emails them one.
+func (s *schoolService) sendRegistrationLogin(schoolID int64) {
+	go func() {
+		ctx, cancel := context.WithTimeout(context.Background(), backgroundMailTimeout)
+		defer cancel()
+		if err := s.issueRegistrationLogin(ctx, schoolID); err != nil {
+			log.Printf("send registration email for school %d: %v", schoolID, err)
+		}
+	}()
+}
+
+func (s *schoolService) issueRegistrationLogin(ctx context.Context, schoolID int64) error {
+	tx, err := s.db.BeginTxx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	// The lock and the checks cover a reviewer acting on the school before
+	// this runs: they must not end up with two different passwords.
+	locked, err := s.repo.LockSchool(ctx, tx, schoolID)
+	if err != nil {
+		return err
+	}
+	if locked.Status != core.SchoolStatusInReview || locked.SchoolAdmin == nil {
+		return nil
+	}
+	admin, err := s.userRepo.GetUserByID(ctx, tx, *locked.SchoolAdmin)
+	if err != nil {
+		return err
+	}
+	if admin.PasswordHash != "" {
+		return nil
+	}
+	if err := s.issueLogin(ctx, tx, admin, locked.Name, mail.RegistrationReceivedEmail); err != nil {
+		return err
+	}
+	return tx.Commit()
 }
 
 func (s *schoolService) UpdateSchoolStatus(ctx context.Context, id int64, status core.SchoolStatus) (LoginEmail, error) {
@@ -210,8 +259,9 @@ func (s *schoolService) UpdateSchoolStatus(ctx context.Context, id int64, status
 	}
 
 	result := LoginEmailNotNeeded
-	// Only the first acceptance sends a password: an admin who already has
-	// one (accepted before, then moved back to review) keeps it.
+	var acceptedEmail *mail.Message
+	// An admin who already has a password (from their registration email, or
+	// accepted before and moved back to review) keeps it and is just told.
 	if locked.Status == core.SchoolStatusInReview && status == core.SchoolStatusAccepted && locked.SchoolAdmin != nil {
 		admin, err := s.userRepo.GetUserByID(ctx, tx, *locked.SchoolAdmin)
 		if err != nil {
@@ -223,10 +273,17 @@ func (s *schoolService) UpdateSchoolStatus(ctx context.Context, id int64, status
 				return "", err
 			}
 			result = LoginEmailSent
+		} else {
+			msg := mail.RegistrationAcceptedEmail(s.appURL, admin.Email, admin.Name, locked.Name)
+			acceptedEmail = &msg
 		}
 	}
 	if err := tx.Commit(); err != nil {
 		return "", ErrInternal
+	}
+	// best effort: they already have a password, so this is only a notice
+	if acceptedEmail != nil {
+		s.sendInBackground(*acceptedEmail)
 	}
 	return result, nil
 }
@@ -245,8 +302,8 @@ func (s *schoolService) SendLoginDetails(ctx context.Context, schoolID int64, em
 	if locked.SchoolAdmin == nil {
 		return ErrNoSchoolAdmin
 	}
-	// Accept sends the first login details. Sending them now would give the
-	// admin a password, and acceptance would then skip its email.
+	// While in review, a new password can't be used yet, and acceptance already
+	// emails one to an admin who has none.
 	if locked.Status == core.SchoolStatusInReview {
 		return ErrSchoolInReview
 	}

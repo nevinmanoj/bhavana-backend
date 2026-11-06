@@ -18,4 +18,5 @@ var (
 	ErrChestNumberConflict    = errors.New("Chest number conflict, please retry")
 	ErrEmptyBatch             = errors.New("At least one entry is required")
 	ErrEventFinalized         = errors.New("The event is finalized; its entries are locked and cannot be changed")
+	ErrEntryRegistrationClosed = errors.New("Entry registration isn't open yet.")
 )
