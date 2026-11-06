@@ -444,7 +444,7 @@ func (h *SchoolHandler) RegisterSchool(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	json.NewEncoder(w).Encode(PostResponsePage[SchoolResponse]{
-		Message:    "School registered successfully. An admin will review your details.",
+		Message:    "School registered successfully. RCI Team will review your details.",
 		Data:       ToSchoolResponse(&schoolToCreate),
 		StatusCode: http.StatusCreated,
 	})

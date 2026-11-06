@@ -1,6 +1,6 @@
 Hello {{.Name}},
 
-We've received the registration for {{.SchoolName}}. An admin will review it, and we'll email you once it's accepted.
+We've received the registration for {{.SchoolName}}. RCI Team will review it, and we'll email you once it's accepted.
 
 You can sign in now to see your school's details, using the details below. You can add students once your registration is accepted and student registration is open.
 
