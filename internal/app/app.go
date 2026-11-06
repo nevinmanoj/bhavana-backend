@@ -56,7 +56,7 @@ func Start() error {
 	if err != nil {
 		return err
 	}
-	//frontend address, for the links in emails
+	//frontend address, for the links in emails and the CORS allowed origin
 	appURL := os.Getenv("APP_URL")
 	if appURL == "" {
 		return errors.New("APP_URL is required")
@@ -103,21 +103,10 @@ func Start() error {
 	scoreHandler := appScore.NewSchoolHandler(scoreService, validator)
 	resultHandler := appResult.NewResultHandler(resultService, validator)
 
-	//CORS
+	//CORS: the frontend at APP_URL is the only allowed origin. Browsers send the
+	//origin without a trailing slash, so trim any from APP_URL.
 	r.Use(cors.Handler(cors.Options{
-		AllowOriginFunc: func(r *http.Request, origin string) bool {
-
-			if strings.Contains(origin, "521d7c39-a391-4c5e-9803-b598925e3ada") {
-				return true
-			}
-			if origin == "http://localhost:8081" {
-				return true
-			}
-			if origin == "https://gray-stone-0cf1a6200.2.azurestaticapps.net" {
-				return true
-			}
-			return false
-		},
+		AllowedOrigins:   []string{strings.TrimRight(appURL, "/")},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
 		ExposedHeaders:   []string{"Link"},
