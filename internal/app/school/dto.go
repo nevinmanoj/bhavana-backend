@@ -1,6 +1,7 @@
 package school
 
 import (
+	"errors"
 	"time"
 
 	"github.com/nevinmanoj/bhavana-backend/internal/core"
@@ -105,9 +106,14 @@ func ToSettingsResponse(s *school.Settings) SettingsResponse {
 	}
 }
 
+var (
+	minDOB        = time.Date(1900, time.January, 1, 0, 0, 0, 0, time.UTC)
+	errInvalidDOB = errors.New("Please enter a valid date of birth.")
+)
+
 type CreateStudentRequest struct {
 	Name     string        `json:"name" validate:"required"`
-	Age      int           `json:"age" validate:"required,gte=0"`
+	DOB      string        `json:"dob" validate:"required"` // YYYY-MM-DD, checked by parseDOB
 	Category core.Category `json:"category" validate:"required,category"`
 }
 type UpdateStudentRequest struct {
@@ -139,17 +145,35 @@ type StudentResponse struct {
 	ID        int64         `json:"id"`
 	SchoolID  int64         `json:"school_id"`
 	Name      string        `json:"name"`
-	Age       int           `json:"age"`
+	DOB       *string       `json:"dob"` // YYYY-MM-DD, null if not recorded
 	Category  core.Category `json:"category"`
 	CreatedAt time.Time     `json:"created_at"`
 }
 
+// parseDOB accepts a YYYY-MM-DD date that isn't in the future. The lower bound
+// catches mistyped years like 0212 or 1012, which date inputs happily allow.
+func parseDOB(s string) (time.Time, error) {
+	dob, err := time.Parse(time.DateOnly, s)
+	if err != nil {
+		return time.Time{}, errInvalidDOB
+	}
+	if dob.Before(minDOB) || dob.After(time.Now()) {
+		return time.Time{}, errInvalidDOB
+	}
+	return dob, nil
+}
+
 func ToStudentResponse(st *school.Student) StudentResponse {
+	var dob *string
+	if st.DOB != nil {
+		formatted := st.DOB.Format(time.DateOnly)
+		dob = &formatted
+	}
 	return StudentResponse{
 		ID:        st.ID,
 		SchoolID:  st.SchoolID,
 		Name:      st.Name,
-		Age:       st.Age,
+		DOB:       dob,
 		Category:  st.Category,
 		CreatedAt: st.CreatedAt,
 	}

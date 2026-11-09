@@ -4,7 +4,9 @@ import (
 	"encoding/json"
 	"strings"
 	"testing"
+	"time"
 
+	domain "github.com/nevinmanoj/bhavana-backend/internal/domain/school"
 	"github.com/nevinmanoj/bhavana-backend/internal/validation"
 )
 
@@ -67,5 +69,37 @@ func TestRegisterSchoolRequestRejectsPassword(t *testing.T) {
 	var req RegisterSchoolRequest
 	if err := dec.Decode(&req); err == nil {
 		t.Error("password field accepted")
+	}
+}
+
+func TestParseDOB(t *testing.T) {
+	tomorrow := time.Now().AddDate(0, 0, 1).Format(time.DateOnly)
+	cases := []struct {
+		in string
+		ok bool
+	}{
+		{"2012-05-14", true},
+		{"1900-01-01", true},
+		{"1899-12-31", false},
+		{"0212-05-14", false},
+		{tomorrow, false},
+		{"2012-02-30", false},
+		{"14/05/2012", false},
+		{"", false},
+	}
+	for _, c := range cases {
+		if _, err := parseDOB(c.in); (err == nil) != c.ok {
+			t.Errorf("parseDOB(%q) err = %v, want ok = %v", c.in, err, c.ok)
+		}
+	}
+}
+
+func TestToStudentResponseDOB(t *testing.T) {
+	dob := time.Date(2012, time.May, 14, 0, 0, 0, 0, time.UTC)
+	if got := ToStudentResponse(&domain.Student{DOB: &dob}).DOB; got == nil || *got != "2012-05-14" {
+		t.Errorf("DOB = %v, want 2012-05-14", got)
+	}
+	if got := ToStudentResponse(&domain.Student{}).DOB; got != nil {
+		t.Errorf("DOB = %v, want nil for a student with no date of birth", *got)
 	}
 }

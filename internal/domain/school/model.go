@@ -37,7 +37,7 @@ type Student struct {
 	ID        int64         `db:"id"`
 	SchoolID  int64         `db:"school_id"`
 	Name      string        `db:"name"`
-	Age       int           `db:"age"`
+	DOB       *time.Time    `db:"dob"` // nil for students registered before DOB replaced age
 	Category  core.Category `db:"category"`
 	CreatedAt time.Time     `db:"created_at"`
 }

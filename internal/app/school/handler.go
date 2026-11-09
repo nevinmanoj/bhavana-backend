@@ -299,9 +299,17 @@ func (h *SchoolHandler) CreateStudent(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(resp)
 		return
 	}
+	dob, err := parseDOB(req.DOB)
+	if err != nil {
+		json.NewEncoder(w).Encode(ErrorResponse{
+			StatusCode: http.StatusBadRequest,
+			Message:    err.Error(),
+		})
+		return
+	}
 	studentToCreate := school.Student{
 		Name:     req.Name,
-		Age:      req.Age,
+		DOB:      &dob,
 		SchoolID: schoolId,
 		Category: req.Category,
 	}

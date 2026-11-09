@@ -206,13 +206,13 @@ func (s *schoolRepository) CreateStudent(ctx context.Context, db sqlx.ExtContext
 		INSERT INTO students (
 			name,
 			school_id,
-			age,
+			dob,
 			category
 		)
 		VALUES (
 			:name,
 			:school_id,
-			:age,
+			:dob,
 			:category
 		)
 		RETURNING id, created_at
