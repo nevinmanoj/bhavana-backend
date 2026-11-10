@@ -68,6 +68,49 @@ type UpdateSchoolRequest struct {
 	SchoolFields
 }
 
+// UpdateOwnSchoolRequest is a school admin editing their own school: every
+// field but the name and contact email, which only RCI changes. The school ID
+// comes from the URL.
+type UpdateOwnSchoolRequest struct {
+	Address         string `json:"address"  validate:"required"`
+	ContactName     string `json:"contact_name"  validate:"required"`
+	ContactPhone    string `json:"contact_phone" validate:"required,mobile"`
+	PrincipalName   string `json:"principal_name" validate:"required"`
+	PrincipalPhone  string `json:"principal_phone" validate:"required,mobile"`
+	ParticipantsMC  *int   `json:"participants_mc" validate:"required,gte=0"`
+	ParticipantsPC  *int   `json:"participants_pc" validate:"required,gte=0"`
+	ParticipantsHI  *int   `json:"participants_hi" validate:"required,gte=0"`
+	NonParticipants *int   `json:"non_participants" validate:"required,gte=0"`
+	TotalStaff      *int   `json:"total_staff" validate:"required,gte=0"`
+	TotalParents    *int   `json:"total_parents" validate:"required,gte=0"`
+}
+
+func (r *UpdateOwnSchoolRequest) normalize() {
+	r.Address = trim(r.Address)
+	r.ContactName = trim(r.ContactName)
+	r.PrincipalName = trim(r.PrincipalName)
+	r.ContactPhone = util.NormalizeMobile(r.ContactPhone)
+	r.PrincipalPhone = util.NormalizeMobile(r.PrincipalPhone)
+}
+
+// toSchool assumes the request has already passed validation (pointers non-nil).
+func (r *UpdateOwnSchoolRequest) toSchool(id int64) school.School {
+	return school.School{
+		ID:              id,
+		Address:         r.Address,
+		ContactName:     r.ContactName,
+		ContactPhone:    r.ContactPhone,
+		PrincipalName:   r.PrincipalName,
+		PrincipalPhone:  r.PrincipalPhone,
+		ParticipantsMC:  *r.ParticipantsMC,
+		ParticipantsPC:  *r.ParticipantsPC,
+		ParticipantsHI:  *r.ParticipantsHI,
+		NonParticipants: *r.NonParticipants,
+		TotalStaff:      *r.TotalStaff,
+		TotalParents:    *r.TotalParents,
+	}
+}
+
 // RegisterSchoolRequest has no password: acceptance emails a generated one.
 type RegisterSchoolRequest struct {
 	SchoolFields

@@ -170,6 +170,56 @@ func (h *SchoolHandler) UpdateSchool(w http.ResponseWriter, r *http.Request) {
 		StatusCode: http.StatusOK,
 	})
 }
+
+// UpdateOwnSchool lets a school admin edit their own school. The name and
+// contact email aren't in the request, so an attempt to send them is rejected
+// as an unknown field.
+func (h *SchoolHandler) UpdateOwnSchool(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	w.Header().Set("Content-Type", "application/json")
+	schoolId, err := util.ParseStrToInt64(chi.URLParam(r, "schoolId"))
+	if err != nil {
+		json.NewEncoder(w).Encode(ErrorResponse{
+			StatusCode: http.StatusBadRequest,
+			Message:    "Invalid school ID in URL parameter",
+		})
+		return
+	}
+	var req UpdateOwnSchoolRequest
+	dec := json.NewDecoder(r.Body)
+	dec.DisallowUnknownFields()
+	if err := dec.Decode(&req); err != nil {
+		json.NewEncoder(w).Encode(ErrorResponse{
+			StatusCode: http.StatusBadRequest,
+			Message:    "invalid JSON body",
+		})
+		return
+	}
+	req.normalize()
+	if err := h.validator.Struct(req); err != nil {
+		json.NewEncoder(w).Encode(ErrorResponse{
+			StatusCode: http.StatusBadRequest,
+			Message:    err.Error(),
+		})
+		return
+	}
+	schoolToUpdate := req.toSchool(*schoolId)
+	if err := h.service.UpdateOwnSchool(ctx, &schoolToUpdate); err != nil {
+		json.NewEncoder(w).Encode(GetSchoolDomainErrorResponse(err))
+		return
+	}
+	updated, err := h.service.GetSchoolByID(ctx, *schoolId)
+	if err != nil {
+		json.NewEncoder(w).Encode(GetSchoolDomainErrorResponse(err))
+		return
+	}
+	json.NewEncoder(w).Encode(PostResponsePage[SchoolResponse]{
+		Message:    "School updated successfully",
+		Data:       ToSchoolResponse(updated),
+		StatusCode: http.StatusOK,
+	})
+}
+
 func (h *SchoolHandler) DeleteSchool(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	schoolIdStr := chi.URLParam(r, "schoolId")

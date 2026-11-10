@@ -20,7 +20,7 @@ var RolePermissions = map[UserRole][]Permission{
 	},
 	UserRoleSchoolAdmin: {
 		PermViewEvent,
-		PermViewSchool,
+		PermViewSchool, PermUpdateOwnSchool,
 		PermCreateStudent, PermUpdateStudent, PermDeleteStudent, PermViewStudent,
 		PermCreateEntry, PermUpdateEntry, PermViewEntry, PermDeleteEntry,
 	},

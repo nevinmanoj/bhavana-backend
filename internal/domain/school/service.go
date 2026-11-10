@@ -44,6 +44,9 @@ type SchoolService interface {
 	GetSettings(ctx context.Context) (*Settings, error)
 	UpdateSettings(ctx context.Context, settings *Settings) error
 	UpdateSchool(ctx context.Context, school *School) error
+	// UpdateOwnSchool is a school admin editing their own school, in review or
+	// accepted. Its name, contact email and school admin are left as they are.
+	UpdateOwnSchool(ctx context.Context, school *School) error
 	DeleteSchool(ctx context.Context, id int64) error
 
 	CreateStudent(ctx context.Context, student *Student) error
@@ -116,6 +119,35 @@ func (s *schoolService) UpdateSchool(ctx context.Context, school *School) error 
 		return ErrInternal
 	}
 	return nil
+}
+
+func (s *schoolService) UpdateOwnSchool(ctx context.Context, school *School) error {
+	userID := ctx.Value(middleware.ContextUserID).(int64)
+	tx, err := s.db.BeginTxx(ctx, nil)
+	if err != nil {
+		return ErrInternal
+	}
+	defer tx.Rollback()
+
+	// the lock keeps an admin from reassigning the school mid-edit
+	locked, err := s.repo.LockSchool(ctx, tx, school.ID)
+	if err != nil {
+		return err
+	}
+	if !ownsSchool(locked, userID) {
+		return ErrUnauthorized
+	}
+	if err := s.repo.UpdateSchoolDetails(ctx, tx, school); err != nil {
+		return err
+	}
+	if err := tx.Commit(); err != nil {
+		return ErrInternal
+	}
+	return nil
+}
+
+func ownsSchool(locked *LockedSchool, userID int64) bool {
+	return locked.SchoolAdmin != nil && *locked.SchoolAdmin == userID
 }
 
 // contactEmailLocked: once a school with a school admin is accepted, its email

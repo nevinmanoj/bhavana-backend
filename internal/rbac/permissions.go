@@ -16,6 +16,9 @@ const (
 	PermUpdateSchool Permission = "school:update"
 	PermDeleteSchool Permission = "school:delete"
 	PermViewSchool   Permission = "school:view"
+	// PermUpdateOwnSchool lets a school admin edit their own school, except its
+	// name and contact email.
+	PermUpdateOwnSchool Permission = "school:updateOwn"
 
 	//students
 	PermCreateStudent Permission = "student:create"

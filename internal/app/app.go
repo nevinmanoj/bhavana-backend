@@ -178,6 +178,7 @@ func Start() error {
 			groupRouter.With(middleware.RequirePermission(rbac.PermViewSchool)).Get("/{schoolId}", schoolHandler.GetSchool)
 			groupRouter.With(middleware.RequirePermission(rbac.PermCreateSchool)).Post("/", schoolHandler.CreateSchool)
 			groupRouter.With(middleware.RequirePermission(rbac.PermUpdateSchool)).Put("/{schoolId}", schoolHandler.UpdateSchool)
+			groupRouter.With(middleware.RequirePermission(rbac.PermUpdateOwnSchool)).Put("/{schoolId}/details", schoolHandler.UpdateOwnSchool)
 			groupRouter.With(middleware.RequirePermission(rbac.PermDeleteSchool)).Delete("/{schoolId}", schoolHandler.DeleteSchool)
 
 			groupRouter.Route("/{schoolId}/students", func(studentRouter chi.Router) {

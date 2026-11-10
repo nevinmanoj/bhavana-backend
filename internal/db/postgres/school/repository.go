@@ -364,6 +364,32 @@ func (s *schoolRepository) LockSchool(ctx context.Context, db sqlx.ExtContext, i
 	return &locked, nil
 }
 
+func (s *schoolRepository) UpdateSchoolDetails(ctx context.Context, db sqlx.ExtContext, schoolToUpdate *school.School) error {
+	query := `
+		UPDATE schools
+		SET address = :address,
+			contact_name = :contact_name,
+			contact_phone = :contact_phone,
+			principal_name = :principal_name,
+			principal_phone = :principal_phone,
+			participants_mc = :participants_mc,
+			participants_pc = :participants_pc,
+			participants_hi = :participants_hi,
+			non_participants = :non_participants,
+			total_staff = :total_staff,
+			total_parents = :total_parents
+		WHERE id = :id
+	`
+	result, err := sqlx.NamedExecContext(ctx, db, query, schoolToUpdate)
+	if err != nil {
+		return errorMapper(err)
+	}
+	if rows, _ := result.RowsAffected(); rows == 0 {
+		return school.ErrSchoolNotFound
+	}
+	return nil
+}
+
 func (s *schoolRepository) UpdateContactEmail(ctx context.Context, db sqlx.ExtContext, id int64, email string) error {
 	result, err := db.ExecContext(ctx, `UPDATE schools SET contact_email = $1 WHERE id = $2`, email, id)
 	if err != nil {

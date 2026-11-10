@@ -88,3 +88,24 @@ func TestContactEmailLocked(t *testing.T) {
 		})
 	}
 }
+
+// A school admin edits only the school they're linked to, whatever its status.
+func TestOwnsSchool(t *testing.T) {
+	tests := []struct {
+		name   string
+		admin  *int64
+		userID int64
+		want   bool
+	}{
+		{"linked admin", id(7), 7, true},
+		{"another school's admin", id(7), 8, false},
+		{"school with no admin", nil, 7, false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := ownsSchool(&LockedSchool{SchoolAdmin: tt.admin}, tt.userID); got != tt.want {
+				t.Errorf("ownsSchool = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}

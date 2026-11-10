@@ -103,3 +103,39 @@ func TestToStudentResponseDOB(t *testing.T) {
 		t.Errorf("DOB = %v, want nil for a student with no date of birth", *got)
 	}
 }
+
+// Only RCI changes a school's name and contact email, so a school admin's
+// update has no fields for them and rejects a body that sends them.
+func TestUpdateOwnSchoolRequestRejectsNameAndEmail(t *testing.T) {
+	for _, field := range []string{`"name":"x"`, `"contact_email":"a@b.co"`, `"school_admin":1`} {
+		dec := json.NewDecoder(strings.NewReader(`{"address":"Road 1",` + field + `}`))
+		dec.DisallowUnknownFields()
+		var req UpdateOwnSchoolRequest
+		if err := dec.Decode(&req); err == nil {
+			t.Errorf("%s accepted", field)
+		}
+	}
+}
+
+func TestUpdateOwnSchoolRequestNormalizeAndValidate(t *testing.T) {
+	v := validation.NewValidator()
+	req := UpdateOwnSchoolRequest{
+		Address: " Road 1 ", ContactName: " Anu ", ContactPhone: "+91 98765 43210",
+		PrincipalName: "Mr P", PrincipalPhone: "098765-43211",
+		ParticipantsMC: intp(0), ParticipantsPC: intp(3), ParticipantsHI: intp(5), NonParticipants: intp(0),
+		TotalStaff: intp(2), TotalParents: intp(0),
+	}
+	req.normalize()
+	if err := v.Struct(req); err != nil {
+		t.Fatalf("valid update rejected: %v", err)
+	}
+	s := req.toSchool(9)
+	if s.ID != 9 || s.Address != "Road 1" || s.ContactName != "Anu" || s.ContactPhone != "9876543210" || s.PrincipalPhone != "9876543211" || s.ParticipantsPC != 3 {
+		t.Errorf("not normalized or mapped: %+v", s)
+	}
+
+	req.TotalStaff = nil
+	if err := v.Struct(req); err == nil {
+		t.Error("missing staff count accepted")
+	}
+}

@@ -19,6 +19,9 @@ type SchoolWriteRepository interface {
 	SchoolReadRepository
 	CreateSchool(ctx context.Context, db sqlx.ExtContext, SchoolToCreate *School) error
 	UpdateSchool(ctx context.Context, db sqlx.ExtContext, SchoolToUpdate *School) error
+	// UpdateSchoolDetails writes what a school admin may change: every field
+	// except name, contact email, school admin and status.
+	UpdateSchoolDetails(ctx context.Context, db sqlx.ExtContext, SchoolToUpdate *School) error
 	UpdateSchoolStatus(ctx context.Context, db sqlx.ExtContext, id int64, status core.SchoolStatus) error
 	DeleteSchool(ctx context.Context, db sqlx.ExtContext, id int64) error
 	// LockSchool row-locks the school for the rest of the transaction and
