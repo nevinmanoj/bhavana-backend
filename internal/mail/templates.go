@@ -37,7 +37,7 @@ type emailData struct {
 }
 
 func RegistrationReceivedEmail(appURL, email, name, schoolName, password string) Message {
-	return message("registration_received", "Bhavana: we received your school registration", emailData{
+	return message("registration_received", "RCI Bhavana 2027 | School Registration | "+schoolName, emailData{
 		Name:       name,
 		Email:      email,
 		SchoolName: schoolName,

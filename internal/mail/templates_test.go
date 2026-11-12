@@ -28,11 +28,18 @@ func TestLoginEmails(t *testing.T) {
 func TestRegistrationEmailExplainsWhatWorksDuringReview(t *testing.T) {
 	m := RegistrationReceivedEmail("https://app.example", "anu@example.com", "Anu", "St Mary's", "pw")
 	for _, part := range []string{m.PlainText, m.HTML} {
-		for _, want := range []string{"You can sign in now", "add students once your registration is accepted and student registration is open"} {
+		for _, want := range []string{"sign in using the credentials below", "Once event registrations open, you’ll be able to add students"} {
 			if !strings.Contains(part, want) {
 				t.Errorf("missing %q: %s", want, part)
 			}
 		}
+	}
+}
+
+func TestRegistrationReceivedSubjectNamesTheSchool(t *testing.T) {
+	m := RegistrationReceivedEmail("https://app.example", "anu@example.com", "Anu", "St Mary's", "pw")
+	if want := "RCI Bhavana 2027 | School Registration | St Mary's"; m.Subject != want {
+		t.Errorf("subject = %q, want %q", m.Subject, want)
 	}
 }
 
@@ -69,7 +76,7 @@ func TestEveryEmailRenders(t *testing.T) {
 		if !strings.HasPrefix(m.HTML, "<!DOCTYPE html>") || !strings.Contains(m.HTML, "<body") {
 			t.Errorf("%q: HTML is missing the layout", m.Subject)
 		}
-		if !strings.Contains(m.HTML, "Hello Anu,") || !strings.HasPrefix(m.PlainText, "Hello Anu,") {
+		if !strings.Contains(m.HTML, "Hello") || !strings.HasPrefix(m.PlainText, "Hello") {
 			t.Errorf("%q: missing greeting", m.Subject)
 		}
 		if strings.Contains(m.PlainText, "<") {
@@ -99,7 +106,7 @@ func TestTemplatesEscapeHTML(t *testing.T) {
 			t.Errorf("%q: unescaped name in HTML", m.Subject)
 		}
 	}
-	if m := RegistrationReceivedEmail("https://app.example", "a@b.c", name, school, "pw"); !strings.Contains(m.PlainText, school) {
+	if m := AcceptedLoginEmail("https://app.example", "a@b.c", name, school, "pw"); !strings.Contains(m.PlainText, school) {
 		t.Error("plain text should carry the name as typed")
 	}
 }

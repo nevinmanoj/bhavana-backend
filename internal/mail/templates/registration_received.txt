@@ -1,8 +1,20 @@
-Hello {{.Name}},
+Hello,
 
-We've received the registration for {{.SchoolName}}. RCI Team will review it, and we'll email you once it's accepted.
+Thank you for registering for RCI Bhavana 2027.
 
-You can sign in now to see your school's details, using the details below. You can add students once your registration is accepted and student registration is open.
+Your school registration has been successfully submitted and is currently being reviewed by the RCI Team. We’ll notify you by email once the application has been approved.
 
-{{template "login_details.txt" .}}
-If you didn't register this school, you can ignore this email.
+You can sign in using the credentials below to view your school details:
+
+Sign-in page: {{.LoginURL}}
+Email: {{.Email}}
+Password: {{.Password}}
+
+Once event registrations open, you’ll be able to add students and enroll them in events.
+
+After signing in, you can change your password by selecting “Change password” at the bottom of the menu. If you forget your password, select “Forgot password?” on the sign-in page.
+
+Please keep this email for your records. If you did not register this school, please disregard this email.
+
+Thanks,
+Team RCI Bhavana 2027
