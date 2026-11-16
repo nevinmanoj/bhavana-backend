@@ -43,4 +43,7 @@ const (
 
 	//settings
 	PermUpdateSettings Permission = "settings:update"
+
+	//dashboard
+	PermViewDashboard Permission = "dashboard:view"
 )

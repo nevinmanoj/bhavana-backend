@@ -15,6 +15,7 @@ import (
 	"github.com/nevinmanoj/bhavana-backend/internal/middleware"
 	"github.com/nevinmanoj/bhavana-backend/internal/validation"
 
+	appDashboard "github.com/nevinmanoj/bhavana-backend/internal/app/dashboard"
 	appEntry "github.com/nevinmanoj/bhavana-backend/internal/app/entry"
 	appEvent "github.com/nevinmanoj/bhavana-backend/internal/app/event"
 	appResult "github.com/nevinmanoj/bhavana-backend/internal/app/result"
@@ -25,6 +26,7 @@ import (
 	"github.com/nevinmanoj/bhavana-backend/internal/rbac"
 
 	repoAccess "github.com/nevinmanoj/bhavana-backend/internal/db/postgres/access"
+	repoDashboard "github.com/nevinmanoj/bhavana-backend/internal/db/postgres/dashboard"
 	repoEntry "github.com/nevinmanoj/bhavana-backend/internal/db/postgres/entry"
 	repoEvent "github.com/nevinmanoj/bhavana-backend/internal/db/postgres/event"
 	repoResult "github.com/nevinmanoj/bhavana-backend/internal/db/postgres/result"
@@ -33,6 +35,7 @@ import (
 	repoUser "github.com/nevinmanoj/bhavana-backend/internal/db/postgres/user"
 
 	domainAccess "github.com/nevinmanoj/bhavana-backend/internal/domain/access"
+	domainDashboard "github.com/nevinmanoj/bhavana-backend/internal/domain/dashboard"
 	domainEntry "github.com/nevinmanoj/bhavana-backend/internal/domain/entry"
 	domainEvent "github.com/nevinmanoj/bhavana-backend/internal/domain/event"
 	domainResult "github.com/nevinmanoj/bhavana-backend/internal/domain/result"
@@ -85,6 +88,7 @@ func Start() error {
 	entryWriteRepo := repoEntry.NewEntryWriteRepository()
 	scoreWriteRepo := repoScore.NewScoreWriteRepository()
 	resultWriteRepo := repoResult.NewResultWriteRepository()
+	dashboardReadRepo := repoDashboard.NewDashboardReadRepository()
 
 	//Services
 	accessService := domainAccess.NewAccessService(dbConn, repoAccess)
@@ -94,6 +98,7 @@ func Start() error {
 	schoolService := domainSchool.NewSchoolService(dbConn, accessService, schoolWriteRepo, userWriteRepo, mailer, appURL)
 	entryService := domainEntry.NewEntryService(dbConn, accessService, entryWriteRepo, eventReadRepo, schoolReadRepo)
 	scoreService := domainScore.NewScoreService(dbConn, accessService, scoreWriteRepo)
+	dashboardService := domainDashboard.NewDashboardService(dbConn, dashboardReadRepo)
 
 	//Handlers
 	userHandler := appUser.NewUserHandler(userService, validator)
@@ -102,6 +107,7 @@ func Start() error {
 	entryHandler := appEntry.NewEntryHandler(entryService, validator)
 	scoreHandler := appScore.NewSchoolHandler(scoreService, validator)
 	resultHandler := appResult.NewResultHandler(resultService, validator)
+	dashboardHandler := appDashboard.NewDashboardHandler(dashboardService)
 
 	//CORS: the frontend at APP_URL is the only allowed origin. Browsers send the
 	//origin without a trailing slash, so trim any from APP_URL.
@@ -221,6 +227,12 @@ func Start() error {
 	r.Route("/leaderboard", func(router chi.Router) {
 		router.Use(authMiddleware, middleware.InjectScope)
 		router.With(middleware.RequirePermission(rbac.PermViewResult)).Get("/", resultHandler.GetLeaderboard)
+	})
+
+	// Dashboard route
+	r.Route("/dashboard", func(router chi.Router) {
+		router.Use(authMiddleware, middleware.InjectScope)
+		router.With(middleware.RequirePermission(rbac.PermViewDashboard)).Get("/", dashboardHandler.GetDashboard)
 	})
 
 	port := os.Getenv("PORT")
