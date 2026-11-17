@@ -14,6 +14,7 @@ type CreateEventRequest struct {
 	MaxEntriesPerSchool int64                 `json:"max_entries_per_school" validate:"required"`
 	Status              core.EventStatus      `json:"status" validate:"required,event_status"`
 	Category          core.Category           `json:"category" validate:"required,event_category"`
+	AgeGroup          core.AgeGroup           `json:"age_group" validate:"required,age_group"`
 	Judges            []EventJudgeRequest     `json:"judges"`
 	Criteria          []EventCriteriaRequest  `json:"criteria"`
 	Standings         []EventStandingRequest  `json:"standings" validate:"required,min=1,dive"`
@@ -51,6 +52,7 @@ type EventResponse struct {
 	MaxEntriesPerSchool int64            `json:"max_entries_per_school"`
 	Status              core.EventStatus `json:"status"`
 	Category            core.Category    `json:"category"`
+	AgeGroup            core.AgeGroup    `json:"age_group"`
 	CreatedAt           string           `json:"created_at"`
 }
 type EventDetailsResponse struct {
@@ -116,6 +118,7 @@ func ToEventResponse(e *event.Event) EventResponse {
 		MaxEntriesPerSchool: e.MaxEntriesPerSchool,
 		Status:              e.Status,
 		Category:            e.Category,
+		AgeGroup:            e.AgeGroup,
 		CreatedAt:           e.CreatedAt.Format("2006-01-02 15:04:05"),
 	}
 }

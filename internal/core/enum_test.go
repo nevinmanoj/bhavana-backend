@@ -51,6 +51,19 @@ func TestParseEventCategory(t *testing.T) {
 	}
 }
 
+func TestAgeGroupIsValid(t *testing.T) {
+	for _, a := range []AgeGroup{AgeGroupJunior, AgeGroupSenior, AgeGroupBoth} {
+		if !a.IsValid() {
+			t.Errorf("IsValid rejected %q", a)
+		}
+	}
+	for _, a := range []AgeGroup{"", "jr", "JUNIOR", "XX"} {
+		if a.IsValid() {
+			t.Errorf("IsValid accepted %q", a)
+		}
+	}
+}
+
 // COMMON is event-only: a student must never be able to hold it.
 func TestCommonIsEventOnly(t *testing.T) {
 	if _, err := ParseCategory("COMMON"); err == nil {

@@ -22,6 +22,7 @@ type Event struct {
 	MaxEntriesPerSchool int64          `db:"max_entries_per_school"`
 	Status            core.EventStatus `db:"status"`
 	Category          core.Category    `db:"category"`
+	AgeGroup          core.AgeGroup    `db:"age_group"`
 	CreatedAt         time.Time        `db:"created_at"`
 }
 

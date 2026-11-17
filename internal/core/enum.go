@@ -113,6 +113,25 @@ func (c Category) AcceptsStudent(student Category) bool {
 	return c == CategoryCommon || c == student
 }
 
+// AgeGroup enum for events.age_group. A JR or SR event only takes students of
+// that age group; a BOTH event takes any age. The Junior / Senior cutoff itself
+// lives in the database (student_age_group), which enforces it on every entry.
+type AgeGroup string
+
+const (
+	AgeGroupJunior AgeGroup = "JR"
+	AgeGroupSenior AgeGroup = "SR"
+	AgeGroupBoth   AgeGroup = "BOTH"
+)
+
+func (a AgeGroup) IsValid() bool {
+	switch a {
+	case AgeGroupJunior, AgeGroupSenior, AgeGroupBoth:
+		return true
+	}
+	return false
+}
+
 // SchoolStatus enum for schools.status
 //
 //	in_review <-> accepted

@@ -30,6 +30,8 @@ func errorMapper(err error) error {
 		//delete can trip any of them through its cascade
 		case "P0410", "P0411", "P0505", "P0603":
 			return entry.ErrEventFinalized
+		case "P0412":
+			return entry.ErrAgeGroupMismatch
 		case "23505":
 			if pqErr.Constraint == "uniq_event_chest_number" {
 				return entry.ErrChestNumberConflict

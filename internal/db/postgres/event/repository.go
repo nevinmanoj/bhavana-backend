@@ -86,6 +86,7 @@ func (r *eventRepository) CreateEvent(ctx context.Context, db sqlx.ExtContext, e
 			max_entries_per_school,
 			status,
 			category,
+			age_group,
 			created_at
 		)
 		VALUES (
@@ -96,6 +97,7 @@ func (r *eventRepository) CreateEvent(ctx context.Context, db sqlx.ExtContext, e
 			:max_entries_per_school,
 			:status,
 			:category,
+			:age_group,
 			:created_at
 		)
 		RETURNING id, created_at
@@ -123,7 +125,8 @@ func (r *eventRepository) UpdateEvent(ctx context.Context, db sqlx.ExtContext, e
 			min_members = :min_members,
 			max_members = :max_members,
 			max_entries_per_school = :max_entries_per_school,
-			category = :category
+			category = :category,
+			age_group = :age_group
 		WHERE id = :id
 	`
 	result, err := sqlx.NamedExecContext(ctx, db, query, eventToUpdate)

@@ -49,6 +49,15 @@ func NewValidator()*validator.Validate {
 		return category.IsValidForEvent()
 	})
 
+	//register event age group validation
+	v.RegisterValidation("age_group", func(fl validator.FieldLevel) bool {
+		ageGroup, ok := fl.Field().Interface().(core.AgeGroup)
+		if !ok {
+			return false
+		}
+		return ageGroup.IsValid()
+	})
+
 	//register school status validation
 	v.RegisterValidation("school_status", func(fl validator.FieldLevel) bool {
 		status, ok := fl.Field().Interface().(core.SchoolStatus)

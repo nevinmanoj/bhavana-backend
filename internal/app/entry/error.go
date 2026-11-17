@@ -53,6 +53,11 @@ func GetEntryDomainErrorResponse(err error) ErrorResponse {
 			StatusCode: 400,
 			Message:    entry.ErrCategoryMismatch.Error(),
 		}
+	case entry.ErrAgeGroupMismatch:
+		return ErrorResponse{
+			StatusCode: 400,
+			Message:    entry.ErrAgeGroupMismatch.Error(),
+		}
 	case entry.ErrStudentAlreadyInEntry:
 		return ErrorResponse{
 			StatusCode: 400,
