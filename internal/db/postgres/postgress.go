@@ -8,7 +8,10 @@ import (
 	_ "github.com/lib/pq"
 )
 
-func NewPostgres(dsn string) *sqlx.DB {
+// NewPostgres opens the pool. maxOpenConns is per replica, so replicas times
+// maxOpenConns must stay under the server's max_connections minus the ~15
+// Azure reserves (B1ms allows 50, leaving about 35).
+func NewPostgres(dsn string, maxOpenConns int) *sqlx.DB {
 	db, err := sqlx.Open("postgres", dsn)
 	if err != nil {
 		log.Fatal("failed to open DB:", err)
@@ -19,9 +22,8 @@ func NewPostgres(dsn string) *sqlx.DB {
 		log.Fatal("failed to ping DB:", err)
 	}
 
-	// Connection pool tuning (still works the same)
-	db.SetMaxOpenConns(25)
-	db.SetMaxIdleConns(10)
+	db.SetMaxOpenConns(maxOpenConns)
+	db.SetMaxIdleConns(min(10, maxOpenConns))
 	db.SetConnMaxLifetime(5 * time.Minute)
 
 	return db

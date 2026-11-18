@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/go-chi/chi"
@@ -65,8 +66,16 @@ func Start() error {
 		return errors.New("APP_URL is required")
 	}
 
-	//postgres
-	dbConn := postgres.NewPostgres(dsn)
+	//postgres: pool size per replica, see NewPostgres
+	maxOpenConns := 15
+	if v := os.Getenv("DB_MAX_OPEN_CONNS"); v != "" {
+		n, err := strconv.Atoi(v)
+		if err != nil || n < 1 {
+			return fmt.Errorf("DB_MAX_OPEN_CONNS must be a positive integer, got %q", v)
+		}
+		maxOpenConns = n
+	}
+	dbConn := postgres.NewPostgres(dsn, maxOpenConns)
 
 	//validator
 	validator := validation.NewValidator()
