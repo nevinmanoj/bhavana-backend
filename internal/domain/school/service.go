@@ -106,13 +106,16 @@ func (s *schoolService) UpdateSchool(ctx context.Context, school *School) error 
 			}
 			return ErrInternal
 		}
-		// The password went to the old address, which may not be theirs.
-		// Clearing it makes acceptance email a new one to the corrected address.
-		if err := s.userRepo.SetPasswordHash(ctx, tx, *locked.SchoolAdmin, ""); err != nil {
+		admin, err := s.userRepo.GetUserByID(ctx, tx, *locked.SchoolAdmin)
+		if err != nil {
 			return ErrInternal
 		}
-		if err := s.userRepo.InvalidateResetTokens(ctx, tx, *locked.SchoolAdmin); err != nil {
-			return ErrInternal
+		// The registration email, password included, went to the old address,
+		// which may not be theirs. Send it again to the corrected one with a new
+		// password, so they can sign in during review as if they'd typed it
+		// right. A failed send rolls the whole edit back, like Send login details.
+		if err := s.issueLogin(ctx, tx, admin, school.Name, mail.RegistrationReceivedEmail); err != nil {
+			return err
 		}
 	}
 	if err := tx.Commit(); err != nil {
@@ -162,7 +165,7 @@ func contactEmailLocked(locked *LockedSchool, updated *School) bool {
 
 // syncsAdminEmail: while a registration is in review, its contact email is
 // also the admin's login, so a reviewer correcting a typo before accepting
-// sends the login details to the corrected address. Not when the edit also
+// moves the login and emails a new password to the corrected address. Not when the edit also
 // reassigns the school admin, and not after acceptance, when the two may
 // legitimately differ.
 func syncsAdminEmail(locked *LockedSchool, updated *School) bool {
@@ -334,8 +337,8 @@ func (s *schoolService) SendLoginDetails(ctx context.Context, schoolID int64, em
 	if locked.SchoolAdmin == nil {
 		return ErrNoSchoolAdmin
 	}
-	// While in review, a new password can't be used yet, and acceptance already
-	// emails one to an admin who has none.
+	// While in review the contact email is still the sign-in email, so a typo
+	// is fixed by editing the school's details, which also emails a new password.
 	if locked.Status == core.SchoolStatusInReview {
 		return ErrSchoolInReview
 	}
