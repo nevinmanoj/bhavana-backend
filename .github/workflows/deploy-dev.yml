@@ -1,0 +1,55 @@
+name: Build and Deploy Go API (dev)
+
+# Same as deploy.yml, pointed at the dev resources. It signs in with the dev
+# identity, which can change only the bhavana-dev resource group, so it cannot
+# reach production. If a DEV_AZURE_* secret is missing, Azure Login fails and
+# nothing is deployed.
+
+on:
+  push:
+    branches: [ dev ]
+  workflow_dispatch:
+
+env:
+  REGISTRY: bhavananew.azurecr.io
+  IMAGE_NAME: bhavana-backend-dev
+
+jobs:
+  build-and-deploy:
+    # Dev deploys only from dev, including manual runs.
+    if: github.ref == 'refs/heads/dev'
+    runs-on: ubuntu-latest
+    environment: dev
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Azure Login
+      uses: azure/login@v2
+      with:
+          client-id: ${{ secrets.DEV_AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.DEV_AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.DEV_AZURE_SUBSCRIPTION_ID }}
+
+    - name: Login to ACR
+      run: |
+        az acr login --name bhavananew
+
+    - name: Build image
+      run: |
+        docker build -t $REGISTRY/$IMAGE_NAME:${{ github.sha }} .
+
+    - name: Push image
+      run: |
+        docker push $REGISTRY/$IMAGE_NAME:${{ github.sha }}
+
+    - name: Deploy to Container Apps
+      uses: azure/container-apps-deploy-action@v1
+      with:
+        resourceGroup: bhavana-dev
+        containerAppName: bhavana-backend-dev
+        imageToDeploy: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
