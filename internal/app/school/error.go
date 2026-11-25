@@ -57,11 +57,6 @@ func GetSchoolDomainErrorResponse(err error) ErrorResponse {
 			StatusCode: 400,
 			Message:    school.ErrNoSchoolAdmin.Error(),
 		}
-	case school.ErrSchoolInReview:
-		return ErrorResponse{
-			StatusCode: 400,
-			Message:    school.ErrSchoolInReview.Error(),
-		}
 	case school.ErrContactEmailLocked:
 		return ErrorResponse{
 			StatusCode: 400,
