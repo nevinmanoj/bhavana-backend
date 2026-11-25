@@ -553,7 +553,7 @@ func (h *SchoolHandler) UpdateSchoolStatus(w http.ResponseWriter, r *http.Reques
 	})
 }
 
-// SendLoginDetails emails an accepted school's admin a new password,
+// SendLoginDetails emails a school's admin a new password,
 // optionally to a corrected address.
 func (h *SchoolHandler) SendLoginDetails(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()

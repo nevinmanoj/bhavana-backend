@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/nevinmanoj/bhavana-backend/internal/core"
+	"github.com/nevinmanoj/bhavana-backend/internal/mail"
 	"github.com/nevinmanoj/bhavana-backend/internal/rbac"
 )
 
@@ -86,6 +87,23 @@ func TestContactEmailLocked(t *testing.T) {
 				t.Errorf("contactEmailLocked = %v, want %v", got, tt.want)
 			}
 		})
+	}
+}
+
+// In review, sending login details repeats the registration email; its "new
+// password" wording would confuse an admin who never received a first one.
+func TestLoginDetailsEmail(t *testing.T) {
+	build := func(status core.SchoolStatus) string {
+		return loginDetailsEmail(status)("https://x.example", "a@s.example", "Anu", "St Mary's", "pw").Subject
+	}
+	registration := mail.RegistrationReceivedEmail("", "", "", "St Mary's", "").Subject
+	newPassword := mail.NewPasswordEmail("", "", "", "St Mary's", "").Subject
+
+	if got := build(core.SchoolStatusInReview); got != registration {
+		t.Errorf("in review: subject %q, want %q", got, registration)
+	}
+	if got := build(core.SchoolStatusAccepted); got != newPassword {
+		t.Errorf("accepted: subject %q, want %q", got, newPassword)
 	}
 }
 

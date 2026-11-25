@@ -38,8 +38,8 @@ type SchoolService interface {
 	// UpdateSchoolStatus tells the school admin when an in-review school is
 	// accepted, emailing a generated password if the admin has none yet.
 	UpdateSchoolStatus(ctx context.Context, id int64, status core.SchoolStatus) (LoginEmail, error)
-	// SendLoginDetails emails the accepted school's admin a new password,
-	// first changing their login email if email differs.
+	// SendLoginDetails emails the school's admin a new password, in review or
+	// accepted, first changing their login email if email differs.
 	SendLoginDetails(ctx context.Context, schoolID int64, email string) error
 	GetSettings(ctx context.Context) (*Settings, error)
 	UpdateSettings(ctx context.Context, settings *Settings) error
@@ -238,7 +238,7 @@ func (s *schoolService) RegisterSchool(ctx context.Context, school *School, admi
 
 // sendRegistrationLogin is best effort: the registration is saved whether or
 // not this works. If it fails the admin simply has no password yet, and
-// accepting the school emails them one.
+// accepting the school or sending login details emails them one.
 func (s *schoolService) sendRegistrationLogin(schoolID int64) {
 	go func() {
 		ctx, cancel := context.WithTimeout(context.Background(), backgroundMailTimeout)
@@ -337,11 +337,6 @@ func (s *schoolService) SendLoginDetails(ctx context.Context, schoolID int64, em
 	if locked.SchoolAdmin == nil {
 		return ErrNoSchoolAdmin
 	}
-	// While in review the contact email is still the sign-in email, so a typo
-	// is fixed by editing the school's details, which also emails a new password.
-	if locked.Status == core.SchoolStatusInReview {
-		return ErrSchoolInReview
-	}
 	admin, err := s.userRepo.GetUserByID(ctx, tx, *locked.SchoolAdmin)
 	if err != nil {
 		return ErrInternal
@@ -361,7 +356,7 @@ func (s *schoolService) SendLoginDetails(ctx context.Context, schoolID int64, em
 		admin.Email = email
 	}
 
-	if err := s.issueLogin(ctx, tx, admin, locked.Name, mail.NewPasswordEmail); err != nil {
+	if err := s.issueLogin(ctx, tx, admin, locked.Name, loginDetailsEmail(locked.Status)); err != nil {
 		return err
 	}
 	if err := tx.Commit(); err != nil {
@@ -371,6 +366,15 @@ func (s *schoolService) SendLoginDetails(ctx context.Context, schoolID int64, em
 }
 
 type loginEmailBuilder func(appURL, email, name, schoolName, password string) mail.Message
+
+// loginDetailsEmail: in review, the admin may never have received a password,
+// so they get the registration email again rather than one about a new password.
+func loginDetailsEmail(status core.SchoolStatus) loginEmailBuilder {
+	if status == core.SchoolStatusInReview {
+		return mail.RegistrationReceivedEmail
+	}
+	return mail.NewPasswordEmail
+}
 
 // issueLogin replaces the admin's password with a generated one and emails
 // it, inside the caller's transaction. Sending before the commit means the
